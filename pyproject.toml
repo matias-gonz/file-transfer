@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "file-transfer"
+version = "0.1.0"
+description = ""
+authors = ["matias-gonz <maigonzalez@fi.uba.ar>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+black = "^22.8.0"
+pylint = "^2.15.2"
+isort = "^5.10.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
