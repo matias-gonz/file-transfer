@@ -1,4 +1,5 @@
 # file-transfer
+[![Linter](https://github.com/matias-gonz/file-transfer/actions/workflows/linter.yml/badge.svg?branch=main)](https://github.com/matias-gonz/file-transfer/actions/workflows/linter.yml)
 
 ## Installation
 
