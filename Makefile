@@ -10,7 +10,7 @@ install:
 
 fmt:
 	$(ISORT) ./${PACKAGE}
-	$(BLACK) ./${PACKAGE}
+	$(BLACK) ./${PACKAGE} --line-length 79
 
 lint: fmt
 	$(FLAKE8) ./${PACKAGE}

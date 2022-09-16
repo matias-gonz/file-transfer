@@ -1,15 +1,17 @@
 import logging as log
 import socket
+from parser import parser
 
-HOST = "127.0.0.1"
-PORT = 6543
+args = parser.parse_args()
+host = args.host
+port = args.port
 
 log.basicConfig(level=log.DEBUG)
-log.info(f"Address: {HOST}:{PORT}")
+log.info(f"Address: {host}:{port}")
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    log.debug(f"Socket binded to {(HOST, PORT)}")
+    s.bind((host, port))
+    log.debug(f"Socket binded to {(host, port)}")
     s.listen()
     conn, addr = s.accept()
     with conn:
