@@ -1,7 +1,7 @@
 POETRY=poetry
 BLACK=$(POETRY) run black
 ISORT=$(POETRY) run isort
-PYLINT=$(POETRY) run pylint
+FLAKE8=$(POETRY) run flake8
 PACKAGE=src
 
 install:
@@ -13,7 +13,7 @@ fmt:
 	$(BLACK) ./${PACKAGE}
 
 lint: fmt
-	$(PYLINT) ./${PACKAGE}
+	$(FLAKE8) ./${PACKAGE}
 
 server:
 	$ python3 ./src/server.py
