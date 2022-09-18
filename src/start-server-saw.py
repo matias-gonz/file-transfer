@@ -21,6 +21,7 @@ def main():
     quiet = args.quiet
     verbose = args.verbose
     sdir = args.storage
+
     connections = {}
 
     set_logging_level(quiet, verbose)
@@ -36,7 +37,12 @@ def main():
             if address not in connections:
                 connections[address] = Connection(address, msg)
 
-            s.sendto(connections[address].respond_to(msg), address)
+            response = connections[address].respond_to(msg)
+
+            if len(response) == 0:
+                del connections[address]
+            else:
+                s.sendto(response, address)
 
 
 if __name__ == "__main__":

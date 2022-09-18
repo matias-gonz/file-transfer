@@ -51,7 +51,13 @@ class Receiver:
         seq_num = int.from_bytes(msg[:4], byteorder="big")
 
         if seq_num == self.next:
-            self.file.write(msg[4:])
+            data = msg[4:]
+
+            if len(data) == 0:
+                return bytearray()
+
+            self.file.write(data)
+            # hay que truncarlo a 32 bits
             self.next = (self.next + 1) % (2 ** 32)
 
         return self.next.to_bytes(4, byteorder="big")

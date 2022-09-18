@@ -6,9 +6,9 @@ from parser import parser as p
 def set_logging_level(quiet, verbose):
     log.basicConfig(level=log.INFO)
     if quiet:
-        log.basicConfig(level=log.ERROR)
+        log.basicConfig(level=log.ERROR, force=True)
     if verbose:
-        log.basicConfig(level=log.DEBUG)
+        log.basicConfig(level=log.DEBUG, force=True)
 
 
 def main():
