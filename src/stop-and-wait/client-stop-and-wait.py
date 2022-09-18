@@ -1,6 +1,7 @@
 import logging as log
-import constant
 import socket
+
+import constant
 
 HOST = "127.0.0.1"
 PORT = 6543
@@ -10,8 +11,8 @@ log.info(f"Server Address: {HOST}:{PORT}")
 
 
 def first_packet():
-    sequence_number = (constant.FIRST_SEQ_NUMBER).to_bytes(4, byteorder='big')
-    operation_type = (constant.UPLOAD).to_bytes(1, byteorder='big')
+    sequence_number = (constant.FIRST_SEQ_NUMBER).to_bytes(4, byteorder="big")
+    operation_type = (constant.UPLOAD).to_bytes(1, byteorder="big")
     filename = "file.txt".encode()
     return sequence_number + operation_type + filename
 

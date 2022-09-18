@@ -1,7 +1,8 @@
 import logging as log
 import socket
-from lib.protocol import Connection
 from parser import parser as p
+
+from lib.protocol import Connection
 
 
 def set_logging_level(quiet, verbose):
@@ -34,8 +35,8 @@ def main():
 
             if address not in connections:
                 connections[address] = Connection(address, msg)
-            else:
-                connections[address].respond_to(msg)
+
+            s.sendto(connections[address].respond_to(msg), address)
 
 
 if __name__ == "__main__":
