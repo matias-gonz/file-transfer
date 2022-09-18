@@ -20,3 +20,9 @@ server:
 
 client:
 	$ python3 ./src/client.py
+
+server-saw:
+	$ python3 ./src/start-server-saw.py -s 'Hola'
+
+upload-saw:
+	$ python3 ./src/upload-saw.py
