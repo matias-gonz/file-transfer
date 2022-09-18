@@ -6,18 +6,18 @@ WINDOW_SIZE = 10
 class Connection:
     def __init__(self, addr, msg):
         seq_num = int.from_bytes(msg[:4], byteorder="big")
-        log.debug(f"El número de secuencia es: {seq_num}")
+        log.debug(f"The first sequence number is: {seq_num}")
 
         if seq_num != 0:
             raise ValueError(
-                "el primer paquete tiene número de secuencia no nulo"
+                "the first message received has nonzero sequence number"
             )
 
         opcode = int.from_bytes(msg[4:5], byteorder="big")
-        log.debug(f"Se recibió un valor de operación de: {opcode}")
+        log.debug(f"Received an operation number of: {opcode}")
 
         file_name = msg[5:].decode()
-        log.debug(f'El nombre del archivo es: "{file_name}"')
+        log.debug(f'Received file name: "{file_name}"')
 
         if opcode == 0:
             self.responder = Sender(file_name)
@@ -47,6 +47,8 @@ class Receiver:
 
     def respond_to(self, msg):
         seq_num = int.from_bytes(msg[:4], byteorder="big")
+
+        log.debug(f"The sequence number is: {seq_num}")
 
         if seq_num == self.next:
             data = msg[4:]
