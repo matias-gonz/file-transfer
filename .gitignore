@@ -1,1 +1,3 @@
 .idea
+src/lib/__pycache__
+src/parser/__pycache__
