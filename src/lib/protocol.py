@@ -6,7 +6,7 @@ WINDOW_SIZE = 10
 class Connection:
     def __init__(self, addr, msg):
         seq_num = int.from_bytes(msg[:4], byteorder="big")
-        log.debug(f'El número de secuencia es: {seq_num}')
+        log.debug(f"El número de secuencia es: {seq_num}")
 
         if seq_num != 0:
             raise ValueError(
@@ -14,9 +14,7 @@ class Connection:
             )
 
         opcode = int.from_bytes(msg[4:5], byteorder="big")
-        log.debug(
-            f'Se recibió un valor de operación de: {opcode}'
-        )
+        log.debug(f"Se recibió un valor de operación de: {opcode}")
 
         file_name = msg[5:].decode()
         log.debug(f'El nombre del archivo es: "{file_name}"')
@@ -58,7 +56,7 @@ class Receiver:
 
             self.file.write(data)
             # hay que truncarlo a 32 bits
-            self.next = (self.next + 1) % (2 ** 32)
+            self.next = (self.next + 1) % (2**32)
 
         return self.next.to_bytes(4, byteorder="big")
 
