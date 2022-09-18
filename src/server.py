@@ -1,6 +1,8 @@
 import logging as log
 import socket
-from parser import parser
+from parser import parser as p
+
+parser = p.server_parser()
 
 args = parser.parse_args()
 host = args.host
