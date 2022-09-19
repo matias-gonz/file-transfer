@@ -37,7 +37,9 @@ class Connection:
 
     def timed_out(self):
         # TODO: cambiar el 0.100 por una constante
-        return time.process_time_ns() - self.t_last_msg > (RETRY_DELAY * 1_000_000)
+        return time.process_time_ns() - self.t_last_msg > (
+            RETRY_DELAY * 1_000_000
+        )
 
     def timeout_response(self):
         self.t_last_msg = time.process_time_ns()

@@ -2,8 +2,8 @@ import logging as log
 import socket
 import sys
 import threading
-from parser import parser as p
 from os import path
+from parser import parser as p
 
 from lib.protocol import Connection
 
@@ -38,7 +38,9 @@ def check_timed_out_connections(connections, s):
                 s.sendto(addr, data)
 
         except TimeoutError:
-            log.info(f"Connection {addr[0]}:{addr[1]} was closed due to timeout")
+            log.info(
+                f"Connection {addr[0]}:{addr[1]} was closed due to timeout"
+            )
             del connections[addr]
 
 
@@ -56,9 +58,7 @@ def recv_msg(connections, s, sdir):
 
     if len(response) == 0:
         del connections[address]
-        log.debug(
-            f"Connection with {address[0]}:{address[1]} finished"
-        )
+        log.debug(f"Connection with {address[0]}:{address[1]} finished")
     else:
         s.sendto(response, address)
 
