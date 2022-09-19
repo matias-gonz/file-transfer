@@ -21,14 +21,16 @@ def upload():
     client_socket.sendto(first_packet(), (HOST, PORT))
     log.debug(f"First Message sent to{(HOST, PORT)}")
     file = open(constant.FILEPATH + "prueba.txt", "rb")
-    data = file.read(constant.MAX_PKT_SIZE)
-    sequence_number = (1).to_bytes(4, byteorder="big")
+    data = file.read(constant.PAYLOAD_SIZE)
+    next_sequence_number = 1
     data = bytearray(data)
     while data:
+        sequence_number = (next_sequence_number).to_bytes(4, byteorder="big")
         if client_socket.sendto(sequence_number+data, (HOST, PORT)):
             log.debug("Sending data packets")
-            data = file.read(constant.MAX_PKT_SIZE)
-    client_socket.sendto((2).to_bytes(4, byteorder="big"), (HOST, PORT))
+            data = file.read(constant.PAYLOAD_SIZE)
+        next_sequence_number += 1
+    client_socket.sendto((next_sequence_number).to_bytes(4, byteorder="big"), (HOST, PORT))
     client_socket.close()
     file.close()
 
