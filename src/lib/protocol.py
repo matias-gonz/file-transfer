@@ -1,13 +1,15 @@
+import collections
 import logging as log
 import time
 
-WINDOW_SIZE = 10
+import constant
+
 RETRY_DELAY = 1.0  # [s]
 RETRY_NUMBER = 3
 
 
 class Connection:
-    def __init__(self, addr, msg, storage_dir):
+    def __init__(self, msg, storage_dir):
         seq_num = int.from_bytes(msg[:4], byteorder="big")
         log.debug(f"The first sequence number is: {seq_num}")
 
@@ -24,9 +26,9 @@ class Connection:
 
         file_path = storage_dir + "/" + file_name
 
-        if opcode == 0:
+        if opcode == constant.DOWNLOAD:
             self.responder = Sender(file_path)
-        elif opcode == 1:
+        elif opcode == constant.UPLOAD:
             self.responder = Receiver(file_path)
 
         self.t_last_msg = time.process_time_ns()
@@ -49,14 +51,64 @@ class Connection:
 class Sender:
     def __init__(self, file_name):
         self.file = open(file_name, "rb")
+        self.base = 1  # oldest in-flight packet
+        self.dup_ack = 2
+        self.timeout_count = -1
+        self.buffer = collections.deque(maxlen=constant.WINDOW_SIZE)
+        for i in range(constant.WINDOW_SIZE):
+            self.read_next_chunk()
 
     def respond_to(self, msg):
-        packet = bytearray()
-        return packet
+        ack_n = int.from_bytes(msg[:4], byteorder="big")
+
+        if ack_n == 0:
+            return self.go_back_n()
+
+        log.debug(f"Received ACK={ack_n}")
+
+        if ack_n < self.base:
+            return tuple()
+
+        if ack_n == self.base:
+            self.dup_ack = (self.dup_ack + 1) % 3
+            return tuple() if self.dup_ack != 0 else self.timeout_response()
+
+        self.dup_ack = 0
+        self.timeout_count = 0
+
+        msgs = (
+            self.compose_msg(seq_num, self.read_next_chunk())
+            for seq_num in range(
+                self.base + constant.WINDOW_SIZE, ack_n + constant.WINDOW_SIZE
+            )
+        )
+
+        self.base = ack_n
+        log.debug(f"Current base={self.base}")
+
+        return msgs
 
     def timeout_response(self):
-        packet = bytearray()
-        return packet
+        if self.timeout_count == RETRY_NUMBER:
+            raise TimeoutError("connection was lost")
+
+        self.timeout_count += 1
+
+        return self.go_back_n()
+
+    def go_back_n(self):
+        return (
+            self.compose_msg(i, payload)
+            for i, payload in enumerate(self.buffer, self.base)
+        )
+
+    def compose_msg(self, seq_num, payload):
+        return seq_num.to_bytes(4, byteorder="big") + payload
+
+    def read_next_chunk(self):
+        read = self.file.read(constant.PAYLOAD_SIZE)
+        self.buffer.append(read)
+        return read
 
     def __del__(self):
         self.file.close()
@@ -79,21 +131,22 @@ class Receiver:
             data = msg[4:]
 
             if len(data) == 0:
-                return bytearray()
+                log.info("Finished receiving file")
+                raise StopIteration("finished sending packets")
 
             self.file.write(data)
             # hay que truncarlo a 32 bits
             self.next = (self.next + 1) % (2**32)
 
-        return self.next.to_bytes(4, byteorder="big")
+        return self.next.to_bytes(4, byteorder="big"),
 
     def timeout_response(self):
         self.timeout_count += 1
 
         if self.timeout_count > RETRY_NUMBER:
-            raise TimeoutError("Se perdió la conexión con el cliente")
+            raise TimeoutError("connection was lost")
 
-        return bytearray()
+        return tuple()
 
     def __del__(self):
         self.file.close()

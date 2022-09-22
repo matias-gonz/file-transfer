@@ -32,10 +32,11 @@ def check_timed_out_connections(connections, s):
     for addr, conn in timed_out:
         try:
             log.info(f"Connection {addr[0]}:{addr[1]} timed out")
-            data = conn.timeout_response()
+            responses = conn.timeout_response()
 
-            if len(data) != 0:
-                s.sendto(addr, data)
+            if len(responses) != 0:
+                for r in responses:
+                    s.sendto(r, addr)
 
         except TimeoutError:
             log.info(
@@ -52,15 +53,15 @@ def recv_msg(connections, s, sdir):
     log.info(f"Received a message from {address[0]}:{address[1]}")
 
     if address not in connections:
-        connections[address] = Connection(address, msg, sdir)
+        connections[address] = Connection(msg, sdir)
 
-    response = connections[address].respond_to(msg)
+    try:
+        for r in connections[address].respond_to(msg):
+            s.sendto(r, address)
 
-    if len(response) == 0:
+    except StopIteration:
         del connections[address]
         log.debug(f"Connection with {address[0]}:{address[1]} finished")
-    else:
-        s.sendto(response, address)
 
 
 def main():
