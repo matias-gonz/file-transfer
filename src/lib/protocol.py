@@ -2,7 +2,7 @@ import collections
 import logging as log
 import time
 
-import constant
+from . import constant
 
 RETRY_DELAY = 1.0  # [s]
 RETRY_NUMBER = 3
@@ -50,6 +50,7 @@ class Connection:
 
 class Sender:
     def __init__(self, file_name):
+        log.debug(f"Reading from file: '{file_name}'")
         self.file = open(file_name, "rb")
         self.base = 1  # oldest in-flight packet
         self.dup_ack = 2
@@ -116,6 +117,7 @@ class Sender:
 
 class Receiver:
     def __init__(self, file_name):
+        log.debug(f"Writing to file: '{file_name}'")
         self.file = open(file_name, "wb")
         self.next = 1
         self.timeout_count = 0
@@ -138,7 +140,8 @@ class Receiver:
             # hay que truncarlo a 32 bits
             self.next = (self.next + 1) % (2**32)
 
-        return self.next.to_bytes(4, byteorder="big"),
+        log.debug(f"Sending ACK={self.next}")
+        return (self.next.to_bytes(4, byteorder="big"),)
 
     def timeout_response(self):
         self.timeout_count += 1
