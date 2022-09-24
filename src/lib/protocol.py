@@ -4,9 +4,6 @@ import time
 
 from . import constant
 
-RETRY_DELAY = 1.0  # [s]
-RETRY_NUMBER = 3
-
 
 class Connection:
     def __init__(self, msg, storage_dir):
@@ -38,14 +35,17 @@ class Connection:
         return self.responder.respond_to(msg)
 
     def timed_out(self):
-        # TODO: cambiar el 0.100 por una constante
         return time.process_time_ns() - self.t_last_msg > (
-            RETRY_DELAY * 1_000_000
+            constant.RETRY_DELAY * 1_000_000
         )
 
     def timeout_response(self):
         self.t_last_msg = time.process_time_ns()
         return self.responder.timeout_response()
+
+
+def compose_msg(seq_num, payload):
+    return seq_num.to_bytes(4, byteorder="big") + payload
 
 
 class Sender:
@@ -75,28 +75,22 @@ class Sender:
         return self.fill_window()
 
     def timeout_response(self):
-        if self.timeout_count == RETRY_NUMBER:
+        if self.timeout_count == constant.RETRY_NUMBER:
             raise TimeoutError("connection was lost")
 
         self.timeout_count += 1
-
-        return self.go_back_n()
-
-    def go_back_n(self):
+        # go-back-n
         return iter(self.buffer)
 
     def fill_window(self):
         msgs = (
-            self.compose_msg(seq_num, self.read_next_chunk())
+            compose_msg(seq_num, self.read_next_chunk())
             for seq_num in range(
                 self.last_sent + 1, self.base + constant.WINDOW_SIZE
             )
         )
         self.last_sent = self.base + len(self.buffer) - 1
         return msgs
-
-    def compose_msg(self, seq_num, payload):
-        return seq_num.to_bytes(4, byteorder="big") + payload
 
     def read_next_chunk(self):
         read = self.file.read(constant.PAYLOAD_SIZE)
@@ -133,13 +127,13 @@ class Receiver:
             self.next = (self.next + 1) % (2**32)
 
         log.debug(f"Sending ACK={self.next}")
-        return (self.next.to_bytes(4, byteorder="big"),)
+        return compose_msg(self.next, bytearray()),
 
     def timeout_response(self):
         self.timeout_count += 1
 
-        if self.timeout_count > RETRY_NUMBER:
-            raise TimeoutError("connection was lost")
+        if self.timeout_count > constant.RETRY_NUMBER:
+            raise TimeoutError("connection with client timed out")
 
         return tuple()
 
