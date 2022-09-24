@@ -36,7 +36,6 @@ class Connection:
         return self.responder.respond_to(msg)
 
     def timed_out(self):
-        # TODO: cambiar el 0.100 por una constante
         return time.process_time_ns() - self.t_last_msg > (
             RETRY_DELAY * 1_000_000
         )
@@ -91,7 +90,7 @@ class Receiver:
         self.timeout_count += 1
 
         if self.timeout_count > RETRY_NUMBER:
-            raise TimeoutError("Se perdió la conexión con el cliente")
+            raise TimeoutError("connection with client timeout")
 
         return bytearray()
 
