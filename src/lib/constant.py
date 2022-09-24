@@ -14,6 +14,6 @@ SOCKET_TIMEOUT = (
     0.030  # max time in seconds between each call to socket.recvfrom
 )
 
-CONN_START_SEQNUM = 0  # sequence number of the first packet sent from client
+CONN_START_SEQNUM = 0  # sequence number of the first packet sent from client (don't change)
 
 FILEPATH = "../archivos de prueba/"

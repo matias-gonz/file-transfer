@@ -5,7 +5,23 @@ import time
 from . import constant
 
 
+def sequence_number(pkt_number):
+    """Returns the sequence number for the `pkt_number`th packet"""
+    # truncate to 32 bytes and skip 0 (CONN_START_SEQNUM)
+    return (pkt_number - 1) % (2 ** 32 - 1) + 1
+
+
 def compose_request_msg(opcode, file_name):
+    """
+    Composes an operation request packet.
+
+    Args:
+        opcode (int): operation code for requested operation
+        file_name (string): name of the file
+
+    Returns:
+        the composed request in a `bytes` iterable
+    """
     if opcode not in constant.VALID_OPS:
         raise ValueError(
             "the request has an invalid operation code"
@@ -16,11 +32,13 @@ def compose_request_msg(opcode, file_name):
     )
 
 
-def compose_msg(seq_num, payload=bytes()):
-    return seq_num.to_bytes(4, byteorder="big") + payload
+def compose_msg(header, payload=bytes()):
+    """Composes a message with a header of 4 bytes and a payload"""
+    return header.to_bytes(4, byteorder="big") + payload
 
 
 def msg_number(msg):
+    """Extracts the header number of a packet"""
     if len(msg) < 4:
         raise ValueError(
             "the message is less than 4 bytes"
@@ -29,6 +47,15 @@ def msg_number(msg):
 
 
 def parse_request_msg(msg):
+    """
+    Parses and validates a request message
+
+    Args:
+        msg (bytes): request message to parse
+
+    Returns:
+        a tuple with the sequence number, operation code, and file name of the request
+    """
     if len(msg) < 6:
         raise ValueError(
             "the first message received has an invalid size"
@@ -56,10 +83,14 @@ def parse_request_msg(msg):
 
 
 def parse_data_msg(msg):
+    """Extracts the header and payload of a message"""
     return msg_number(msg), msg[4:]
 
 
 class Connection:
+    """
+    Represents a server connection with a client
+    """
     def __init__(self, msg, storage_dir):
         seq_num, opcode, file_name = parse_request_msg(msg)
 
@@ -91,6 +122,9 @@ class Connection:
 
 
 class Sender:
+    """
+    A helper class that responds to ACK messages and sends data from a file
+    """
     def __init__(self, file_name):
         log.debug(f"Reading from file: '{file_name}'")
         self.file = open(file_name, "rb")
@@ -108,7 +142,7 @@ class Sender:
             self.dup_ack = 0
             self.timeout_count = 0
             self.base = ack_n
-        elif ack_n == self.base:
+        elif ack_n == sequence_number(self.base):
             self.dup_ack = (self.dup_ack + 1) % 3
             if self.dup_ack == 0:
                 return self.timeout_response()
@@ -122,12 +156,15 @@ class Sender:
 
         self.timeout_count += 1
         # go-back-n
-        return iter(self.buffer)
+        return (
+            compose_msg(sequence_number(i), data)
+            for i, data in enumerate(self.buffer, self.base)
+        )
 
     def fill_window(self):
         msgs = (
-            compose_msg(seq_num, self.read_next_chunk())
-            for seq_num in range(
+            compose_msg(sequence_number(i), self.read_next_chunk())
+            for i in range(
                 self.last_sent + 1, self.base + constant.WINDOW_SIZE
             )
         )
@@ -144,6 +181,9 @@ class Sender:
 
 
 class Receiver:
+    """
+    A helper class that responds to data messages with ACKs and writes data to a file
+    """
     def __init__(self, file_name):
         log.debug(f"Writing to file: '{file_name}'")
         self.file = open(file_name, "wb")
@@ -155,7 +195,7 @@ class Receiver:
 
         log.debug(f"The sequence number is: {seq_num}")
 
-        if seq_num == self.next:
+        if seq_num == sequence_number(self.next):
             self.timeout_count = 0
 
             if len(data) == 0:
@@ -163,11 +203,10 @@ class Receiver:
                 raise StopIteration("finished sending packets")
 
             self.file.write(data)
-            # hay que truncarlo a 32 bits
-            self.next = (self.next + 1) % (2**32)
+            self.next += 1
 
-        log.debug(f"Sending ACK={self.next}")
-        return compose_msg(self.next),
+        log.debug(f"Sending ACK={sequence_number(self.next)}")
+        return compose_msg(sequence_number(self.next)),
 
     def timeout_response(self):
         self.timeout_count += 1
