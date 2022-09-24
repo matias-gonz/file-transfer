@@ -20,7 +20,6 @@ def main():
     port = args.port
     quiet = args.quiet
     verbose = args.verbose
-    sdir = args.storage
 
     connections = {}
 
@@ -28,7 +27,7 @@ def main():
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((host, port))
-        log.debug(f"Socket binded to {(host, port)}")
+        print(f"Socket binded to {(host, port)}")
 
         while True:
             msg, address = s.recvfrom(4096)
@@ -41,6 +40,8 @@ def main():
 
             if len(response) == 0:
                 del connections[address]
+                if args.one:
+                    break
             else:
                 s.sendto(response, address)
 
