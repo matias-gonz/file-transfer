@@ -9,11 +9,13 @@ PORT = 6543
 log.basicConfig(level=log.DEBUG)
 log.info(f"Server Address: {HOST}:{PORT}")
 
+
 def first_packet():
     sequence_number = (constant.FIRST_SEQ_NUMBER).to_bytes(4, byteorder="big")
     operation_type = (constant.UPLOAD).to_bytes(1, byteorder="big")
     filename = "prueba.txt".encode()
     return sequence_number + operation_type + filename
+
 
 def upload():
     client_socket = socket(AF_INET, SOCK_DGRAM)
