@@ -5,20 +5,66 @@ import time
 from . import constant
 
 
+def compose_request_msg(opcode, file_name):
+    if opcode not in constant.VALID_OPS:
+        raise ValueError(
+            "the request has an invalid operation code"
+        )
+    return compose_msg(
+        constant.CONN_START_SEQNUM,
+        (opcode.to_bytes(1, byteorder="big") + file_name.encode())
+    )
+
+
+def compose_msg(seq_num, payload=bytes()):
+    return seq_num.to_bytes(4, byteorder="big") + payload
+
+
+def msg_number(msg):
+    if len(msg) < 4:
+        raise ValueError(
+            "the message is less than 4 bytes"
+        )
+    return int.from_bytes(msg[:4], byteorder="big")
+
+
+def parse_request_msg(msg):
+    if len(msg) < 6:
+        raise ValueError(
+            "the first message received has an invalid size"
+        )
+
+    seq_num = msg_number(msg)
+    if seq_num != 0:
+        raise ValueError(
+            "the first message received has nonzero sequence number"
+        )
+
+    opcode = int.from_bytes(msg[4:5], byteorder="big")
+    if opcode not in constant.VALID_OPS:
+        raise ValueError(
+            "the first message received has an invalid operation code"
+        )
+
+    file_name = msg[5:].decode()
+
+    return (
+        seq_num,
+        opcode,
+        file_name,
+    )
+
+
+def parse_data_msg(msg):
+    return msg_number(msg), msg[4:]
+
+
 class Connection:
     def __init__(self, msg, storage_dir):
-        seq_num = int.from_bytes(msg[:4], byteorder="big")
+        seq_num, opcode, file_name = parse_request_msg(msg)
+
         log.debug(f"The first sequence number is: {seq_num}")
-
-        if seq_num != 0:
-            raise ValueError(
-                "the first message received has nonzero sequence number"
-            )
-
-        opcode = int.from_bytes(msg[4:5], byteorder="big")
         log.debug(f"Received an operation number of: {opcode}")
-
-        file_name = msg[5:].decode()
         log.debug(f'Received file name: "{file_name}"')
 
         file_path = storage_dir + "/" + file_name
@@ -44,10 +90,6 @@ class Connection:
         return self.responder.timeout_response()
 
 
-def compose_msg(seq_num, payload):
-    return seq_num.to_bytes(4, byteorder="big") + payload
-
-
 class Sender:
     def __init__(self, file_name):
         log.debug(f"Reading from file: '{file_name}'")
@@ -59,7 +101,7 @@ class Sender:
         self.buffer = collections.deque(maxlen=constant.WINDOW_SIZE)
 
     def respond_to(self, msg):
-        ack_n = int.from_bytes(msg[:4], byteorder="big")
+        ack_n = msg_number(msg)
         log.debug(f"Received ACK={ack_n}")
 
         if self.base < ack_n <= self.last_sent:
@@ -109,14 +151,12 @@ class Receiver:
         self.timeout_count = 0
 
     def respond_to(self, msg):
-        seq_num = int.from_bytes(msg[:4], byteorder="big")
+        seq_num, data = parse_data_msg(msg)
 
         log.debug(f"The sequence number is: {seq_num}")
 
         if seq_num == self.next:
             self.timeout_count = 0
-
-            data = msg[4:]
 
             if len(data) == 0:
                 log.info("Finished receiving file")
@@ -127,7 +167,7 @@ class Receiver:
             self.next = (self.next + 1) % (2**32)
 
         log.debug(f"Sending ACK={self.next}")
-        return compose_msg(self.next, bytearray()),
+        return compose_msg(self.next),
 
     def timeout_response(self):
         self.timeout_count += 1
