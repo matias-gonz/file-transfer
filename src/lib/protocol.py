@@ -136,8 +136,17 @@ class Sender:
         self.dup_ack = 0
         self.timeout_count = 0
         self.buffer = collections.deque(maxlen=constant.WINDOW_SIZE)
+        self.final_pkt = None
 
     def respond_to(self, msg):
+        """
+        Responds to a message. Raises `StopIteration` when it's
+        finished sending packets. Raises `TimeoutError` if
+        connection timed-out.
+
+        :param msg: message to respond to
+        :return: an iterable with responses
+        """
         ack_n = msg_number(msg)
         log.debug(f"Received ACK={ack_n}")
 
@@ -150,11 +159,21 @@ class Sender:
             if self.dup_ack == 0:
                 return self.timeout_response()
 
+        if self.base - 1 == self.final_pkt:
+            log.info("Finished sending file")
+            raise StopIteration("finished sending packets")
+
         log.debug(f"Current base={self.base}, last_sent={self.last_sent}")
-        return self.fill_window()
+        return self._fill_window()
 
     def timeout_response(self):
+        """
+        Creates a response to a time-out event.
+        :return: an iterable of responses
+        """
         if self.timeout_count == constant.RETRY_NUMBER:
+            if self.final_pkt is not None and self.base == self.final_pkt:
+                raise StopIteration("finished sending packets and connection was lost")
             raise TimeoutError("connection was lost")
 
         self.timeout_count += 1
@@ -164,19 +183,34 @@ class Sender:
             for i, data in enumerate(self.buffer, self.base)
         )
 
-    def fill_window(self):
-        msgs = (
-            compose_msg(sequence_number(i), self.read_next_chunk())
-            for i in range(
-                self.last_sent + 1, self.base + constant.WINDOW_SIZE
-            )
-        )
-        self.last_sent = self.base + len(self.buffer) - 1
+    def _fill_window(self):
+        n_to_send = constant.WINDOW_SIZE - self.last_sent + self.base - 1
+        data = [self._read_next_chunk() for _ in range(n_to_send)]
+        msgs = [
+            compose_msg(sequence_number(i), read)
+            for i, read in enumerate(
+                data,
+                self.last_sent + 1
+            ) if len(read) > 0
+        ]
+
+        self.last_sent += len(msgs)
+
+        if len(msgs) < n_to_send:
+            if self.final_pkt is not None:
+                self.last_sent += 1
+                self.final_pkt = self.last_sent
+            msgs.append(compose_msg(self.final_pkt))
+
         return msgs
 
-    def read_next_chunk(self):
+    def _read_next_chunk(self):
         read = self.file.read(constant.PAYLOAD_SIZE)
-        self.buffer.append(read)
+        if len(self.buffer) > 0 and len(self.buffer[-1]) == 0:
+            if len(self.buffer) > 1:
+                self.buffer.popleft()
+        else:
+            self.buffer.append(read)
         return read
 
     def __del__(self):
@@ -196,6 +230,14 @@ class Receiver:
         self.timeout_count = 0
 
     def respond_to(self, msg):
+        """
+        Responds to a message. Raises `StopIteration` when it's
+        finished receiving packets. Raises `TimeoutError` if
+        connection timed-out.
+
+        :param msg: message to respond to
+        :return: an iterable with responses
+        """
         seq_num, data = parse_data_msg(msg)
 
         log.debug(f"The sequence number is: {seq_num}")
@@ -214,6 +256,10 @@ class Receiver:
         return compose_msg(sequence_number(self.next)),
 
     def timeout_response(self):
+        """
+        Creates a response to a time-out event.
+        :return: an iterable of responses
+        """
         self.timeout_count += 1
 
         if self.timeout_count > constant.RETRY_NUMBER:
