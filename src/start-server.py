@@ -32,9 +32,8 @@ def check_timed_out_connections(connections, s):
             log.info(f"Connection {addr[0]}:{addr[1]} timed out")
             responses = conn.timeout_response()
 
-            if len(responses) != 0:
-                for resp in responses:
-                    s.sendto(resp, addr)
+            for resp in responses:
+                s.sendto(resp, addr)
 
         except TimeoutError:
             log.info(
@@ -44,7 +43,6 @@ def check_timed_out_connections(connections, s):
 
 
 def recv_msg(connections, s, sdir, one_run):
-    check_timed_out_connections(connections, s)
 
     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
 
@@ -99,13 +97,14 @@ def main():
             if reading_thread and not reading_thread.is_alive():
                 break
 
-            check_timed_out_connections(connections, s)
-
             try:
+                check_timed_out_connections(connections, s)
                 ended = recv_msg(connections, s, sdir, one_run)
                 if ended:
                     break
             except TimeoutError:
+                continue
+            except StopIteration:
                 continue
 
     if reading_thread:
