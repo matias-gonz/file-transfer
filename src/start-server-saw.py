@@ -87,7 +87,7 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.settimeout(constant.SOCKET_TIMEOUT)
         s.bind((host, port))
-        log.debug(f"Socket binded to port {port}")
+        print(f"Socket binded to port {port}")
 
         while True:
             if reading_thread and not reading_thread.is_alive():
