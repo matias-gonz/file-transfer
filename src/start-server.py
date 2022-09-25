@@ -45,8 +45,10 @@ def recv_msg(connections, s, sdir, one_run):
     check_timed_out_connections(connections, s)
 
     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
+    h = address[0]
+    p = address[1]
 
-    log.info(f"Received a message from {address[0]}:{address[1]} with size {len(msg)}")
+    log.info(f"Received a message from {h}:{p} with size {len(msg)}")
 
     if address not in connections:
         try:
