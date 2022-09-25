@@ -17,7 +17,7 @@ log.info(f"Server Address: {HOST}:{PORT}")
 
 def send_and_ack(s, msg):
     s.sendto(msg, (HOST, PORT))
-    msg, address = s.recvfrom(4)
+    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
     return msg
 
 
