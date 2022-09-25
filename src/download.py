@@ -1,11 +1,8 @@
 import sys
-from os import path
-sys.path.append('.')  # noqa: E402
-from src.parser import parser as p
 import logging as log
-from socket import socket, AF_INET, SOCK_DGRAM, timeout
-import src.lib.constant as constant
-import src.lib.protocol as protocol
+from os import path
+import socket
+from lib import parser, constant, protocol
 
 HOST = "127.0.0.1"
 PORT = 6543
@@ -38,12 +35,12 @@ def send_request(s, msg):
 
 
 def download():
-    parser = p.download_parser()
-    args = parser.parse_args()
+    p = parser.download_parser()
+    args = p.parse_args()
     dst = path.expanduser(args.dst)
     name = args.name
 
-    s = socket(AF_INET, SOCK_DGRAM)
+    s = socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(constant.RETRY_DELAY)
 
     log.debug(f"Sending first message to {(HOST, PORT)}")
