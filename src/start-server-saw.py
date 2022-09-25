@@ -44,18 +44,11 @@ def check_timed_out_connections(connections, s):
             del connections[addr]
 
 
-def recvfrom_timeout(connections, s, size):
-    while True:
-        try:
-            msg, address = s.recvfrom(4096)
-            return msg, address
-
-        except socket.timeout:
-            check_timed_out_connections(connections, s)
-
-
 def recv_msg(connections, s, sdir, one_run):
-    msg, address = recvfrom_timeout(connections, s, 4096)
+    check_timed_out_connections(connections, s)
+
+    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
+
     log.info(f"Received a message from {address[0]}:{address[1]}")
 
     if address not in connections:
