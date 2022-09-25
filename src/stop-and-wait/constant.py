@@ -1,8 +1,0 @@
-DOWNLOAD = 0
-UPLOAD = 1
-MAX_PKT_SIZE = 4096
-PAYLOAD_SIZE = MAX_PKT_SIZE - 4
-
-FIRST_SEQ_NUMBER = 0
-
-FILEPATH = "../archivos de prueba/"

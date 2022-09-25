@@ -41,6 +41,12 @@ def server_parser():
         default=DEFAULT_DIR_PATH,
         help="storage dir path",
     )
+    p.add_argument(
+        "-o",
+        "--one",
+        action="store_true",
+        help=" only one transfer",
+    )
     return p
 
 

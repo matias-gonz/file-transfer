@@ -5,8 +5,7 @@ import threading
 from os import path
 from parser import parser as p
 
-import lib.constant as constant
-import lib.protocol as protocol
+from lib import constant, protocol
 
 
 def set_logging_level(quiet, verbose):
@@ -44,23 +43,32 @@ def check_timed_out_connections(connections, s):
             del connections[addr]
 
 
-def recv_msg(connections, s, sdir):
+def recv_msg(connections, s, sdir, one_run):
     check_timed_out_connections(connections, s)
 
-    msg, address = s.recvfrom(4096)
+    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
 
-    log.info(f"Received a message from {address[0]}:{address[1]}")
+    log.info(f"Received a message from {address[0]}:{address[1]} with size {len(msg)}")
 
     if address not in connections:
-        connections[address] = protocol.Connection(msg, sdir)
+        try:
+            connections[address] = protocol.Connection(msg, sdir)
+        except ValueError:
+            return False
 
     try:
         for resp in connections[address].respond_to(msg):
             s.sendto(resp, address)
 
+        if connections[address].finished():
+            raise StopIteration()
+
+        return False
+
     except StopIteration:
         del connections[address]
         log.debug(f"Connection with {address[0]}:{address[1]} finished")
+        return one_run
 
 
 def main():
@@ -70,10 +78,13 @@ def main():
     port = args.port
     quiet = args.quiet
     verbose = args.verbose
-    sdir = path.expanduser(args.storage)
+    sdir = path.expanduser(args.storage) + "/"
+    one_run = args.one
 
-    reading_thread = threading.Thread(target=wait_for_q, daemon=True)
-    reading_thread.start()
+    reading_thread = None
+    if not one_run:
+        reading_thread = threading.Thread(target=wait_for_q, daemon=True)
+        reading_thread.start()
 
     connections = {}
 
@@ -82,20 +93,23 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.settimeout(constant.SOCKET_TIMEOUT)
         s.bind((host, port))
-        log.debug(f"Socket binded to port {port}")
+        print(f"Socket binded to port {port}")
 
         while True:
-            if not reading_thread.is_alive():
+            if reading_thread and not reading_thread.is_alive():
                 break
 
             check_timed_out_connections(connections, s)
 
             try:
-                recv_msg(connections, s, sdir)
+                ended = recv_msg(connections, s, sdir, one_run)
+                if ended:
+                    break
             except TimeoutError:
                 continue
 
-    reading_thread.join()
+    if reading_thread:
+        reading_thread.join()
 
 
 if __name__ == "__main__":
