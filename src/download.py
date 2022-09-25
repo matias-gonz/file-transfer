@@ -41,7 +41,7 @@ def download():
     dst = path.expanduser(args.dst)
     name = args.name
 
-    s = socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(constant.RETRY_DELAY)
 
     log.debug(f"Sending first message to {(HOST, PORT)}")
