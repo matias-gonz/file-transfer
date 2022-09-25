@@ -5,7 +5,7 @@ import os
 
 PYTHON = 'python3'
 SERVER = 'src/start-server.py'
-CLIENT = 'src/stop-and-wait/client-stop-and-wait.py'
+CLIENT = 'src/upload.py'
 SERVER_IS_UP = 'Socket binded to'
 
 
