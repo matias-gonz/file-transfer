@@ -54,7 +54,8 @@ def parse_request_msg(msg):
         msg (bytes): request message to parse
 
     Returns:
-        a tuple with the sequence number, operation code, and file name of the request
+        a tuple with the sequence number, operation code, and file name
+        of the request
     """
     if len(msg) < 6:
         raise ValueError(
@@ -91,6 +92,7 @@ class Connection:
     """
     Represents a server connection with a client
     """
+
     def __init__(self, msg, storage_dir):
         seq_num, opcode, file_name = parse_request_msg(msg)
 
@@ -125,6 +127,7 @@ class Sender:
     """
     A helper class that responds to ACK messages and sends data from a file
     """
+
     def __init__(self, file_name):
         log.debug(f"Reading from file: '{file_name}'")
         self.file = open(file_name, "rb")
@@ -182,8 +185,10 @@ class Sender:
 
 class Receiver:
     """
-    A helper class that responds to data messages with ACKs and writes data to a file
+    A helper class that responds to data messages with ACKs and writes
+    data to a file
     """
+
     def __init__(self, file_name):
         log.debug(f"Writing to file: '{file_name}'")
         self.file = open(file_name, "wb")
