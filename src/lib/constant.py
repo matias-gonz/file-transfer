@@ -16,5 +16,3 @@ SOCKET_TIMEOUT = (
 
 # sequence number of the first packet sent from client (don't change)
 CONN_START_SEQNUM = 0
-
-FILEPATH = "../archivos de prueba/"
