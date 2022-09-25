@@ -44,7 +44,7 @@ def check_timed_out_connections(connections, s):
             del connections[addr]
 
 
-def recv_msg(connections, s, sdir):
+def recv_msg(connections, s, sdir, one_run):
     check_timed_out_connections(connections, s)
 
     msg, address = s.recvfrom(4096)
@@ -57,10 +57,12 @@ def recv_msg(connections, s, sdir):
     try:
         for resp in connections[address].respond_to(msg):
             s.sendto(resp, address)
+        return False
 
     except StopIteration:
         del connections[address]
         log.debug(f"Connection with {address[0]}:{address[1]} finished")
+        return one_run
 
 
 def main():
@@ -71,9 +73,12 @@ def main():
     quiet = args.quiet
     verbose = args.verbose
     sdir = path.expanduser(args.storage)
+    one_run = args.one
 
-    reading_thread = threading.Thread(target=wait_for_q, daemon=True)
-    reading_thread.start()
+    reading_thread = None
+    if not one_run:
+        reading_thread = threading.Thread(target=wait_for_q, daemon=True)
+        reading_thread.start()
 
     connections = {}
 
@@ -85,17 +90,20 @@ def main():
         log.debug(f"Socket binded to port {port}")
 
         while True:
-            if not reading_thread.is_alive():
+            if reading_thread and not reading_thread.is_alive():
                 break
 
             check_timed_out_connections(connections, s)
 
             try:
-                recv_msg(connections, s, sdir)
+                ended = recv_msg(connections, s, sdir, one_run)
+                if ended:
+                    break
             except TimeoutError:
                 continue
 
-    reading_thread.join()
+    if reading_thread:
+        reading_thread.join()
 
 
 if __name__ == "__main__":
