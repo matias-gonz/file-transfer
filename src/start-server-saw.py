@@ -49,14 +49,21 @@ def recv_msg(connections, s, sdir, one_run):
 
     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
 
-    log.info(f"Received a message from {address[0]}:{address[1]}")
+    log.info(f"Received a message from {address[0]}:{address[1]} with size {len(msg)}")
 
     if address not in connections:
-        connections[address] = protocol.Connection(msg, sdir)
+        try:
+            connections[address] = protocol.Connection(msg, sdir)
+        except ValueError:
+            return False
 
     try:
         for resp in connections[address].respond_to(msg):
             s.sendto(resp, address)
+
+        if connections[address].finished():
+            raise StopIteration()
+
         return False
 
     except StopIteration:
@@ -72,7 +79,7 @@ def main():
     port = args.port
     quiet = args.quiet
     verbose = args.verbose
-    sdir = path.expanduser(args.storage)
+    sdir = path.expanduser(args.storage) + "/"
     one_run = args.one
 
     reading_thread = None

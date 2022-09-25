@@ -100,7 +100,7 @@ class Connection:
         log.debug(f"Received an operation number of: {opcode}")
         log.debug(f'Received file name: "{file_name}"')
 
-        file_path = storage_dir + "/" + file_name
+        file_path = storage_dir + file_name
 
         if opcode == constant.DOWNLOAD:
             self.responder = Sender(file_path)
@@ -121,6 +121,9 @@ class Connection:
     def timeout_response(self):
         self.t_last_msg = time.process_time_ns()
         return self.responder.timeout_response()
+
+    def finished(self):
+        return self.responder.finished()
 
 
 class Sender:
@@ -150,7 +153,7 @@ class Sender:
         ack_n = msg_number(msg)
         log.debug(f"Received ACK={ack_n}")
 
-        if self.base < ack_n <= self.last_sent:
+        if sequence_number(self.base) < ack_n <= sequence_number(self.last_sent + 1):
             self.dup_ack = 0
             self.timeout_count = 0
             self.base = ack_n
@@ -159,7 +162,7 @@ class Sender:
             if self.dup_ack == 0:
                 return self.timeout_response()
 
-        if self.base - 1 == self.final_pkt:
+        if self.finished():
             log.info("Finished sending file")
             raise StopIteration("finished sending packets")
 
@@ -178,10 +181,14 @@ class Sender:
 
         self.timeout_count += 1
         # go-back-n
+        log.debug(f"Resending {len(self.buffer)} packets")
         return (
             compose_msg(sequence_number(i), data)
             for i, data in enumerate(self.buffer, self.base)
         )
+
+    def finished(self):
+        return self.base - 1 == self.final_pkt
 
     def _fill_window(self):
         n_to_send = constant.WINDOW_SIZE - self.last_sent + self.base - 1
@@ -196,12 +203,12 @@ class Sender:
 
         self.last_sent += len(msgs)
 
-        if len(msgs) < n_to_send:
-            if self.final_pkt is not None:
-                self.last_sent += 1
-                self.final_pkt = self.last_sent
+        if len(msgs) < n_to_send and self.final_pkt is None:
+            self.last_sent += 1
+            self.final_pkt = self.last_sent
             msgs.append(compose_msg(self.final_pkt))
 
+        log.debug(f"Sent {len(msgs)} messages, last_sent={self.last_sent}")
         return msgs
 
     def _read_next_chunk(self):
@@ -214,7 +221,10 @@ class Sender:
         return read
 
     def __del__(self):
-        self.file.close()
+        try:
+            self.file.close()
+        except AttributeError:
+            pass
 
 
 class Receiver:
@@ -228,6 +238,7 @@ class Receiver:
         self.file = open(file_name, "wb")
         self.next = 1
         self.timeout_count = 0
+        self._finished = False
 
     def respond_to(self, msg):
         """
@@ -238,6 +249,9 @@ class Receiver:
         :param msg: message to respond to
         :return: an iterable with responses
         """
+        if self.finished():
+            raise StopIteration("finished receiving packets")
+
         seq_num, data = parse_data_msg(msg)
 
         log.debug(f"The sequence number is: {seq_num}")
@@ -247,7 +261,7 @@ class Receiver:
 
             if len(data) == 0:
                 log.info("Finished receiving file")
-                raise StopIteration("finished sending packets")
+                self._finished = True
 
             self.file.write(data)
             self.next += 1
@@ -267,5 +281,11 @@ class Receiver:
 
         return tuple()
 
+    def finished(self):
+        return self._finished
+
     def __del__(self):
-        self.file.close()
+        try:
+            self.file.close()
+        except AttributeError:
+            pass
