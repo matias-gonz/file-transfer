@@ -3,9 +3,7 @@ import socket
 import sys
 import threading
 from os import path
-from parser import parser as p
-
-from lib import constant, protocol
+from lib import parser, constant, protocol
 
 
 def set_logging_level(quiet, verbose):
@@ -70,8 +68,8 @@ def recv_msg(connections, s, sdir, one_run):
 
 
 def main():
-    parser = p.server_parser()
-    args = parser.parse_args()
+    p = parser.server_parser()
+    args = p.parse_args()
     host = args.host
     port = args.port
     quiet = args.quiet
