@@ -4,7 +4,7 @@ import os
 
 
 PYTHON = 'python3'
-SERVER = 'src/start-server-saw.py'
+SERVER = 'src/start-server.py'
 CLIENT = 'src/stop-and-wait/client-stop-and-wait.py'
 SERVER_IS_UP = 'Socket binded to'
 
@@ -42,7 +42,8 @@ def send(file1, filename2):
 
 def create_tmp_file(size):
     tmp = tempfile.NamedTemporaryFile(delete=False, mode="wb")
-    tmp.write(os.urandom(size))
+    for i in range(0, size, 4096):
+        tmp.write(os.urandom(4096))
     tmp.close()
     return tmp.name
 
@@ -72,4 +73,4 @@ def test_send_medium():
 
 
 def test_send_big():
-    assert create_and_send(500000) == 0
+    assert create_and_send(10_000_000) == 0

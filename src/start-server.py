@@ -5,8 +5,7 @@ import threading
 from os import path
 from parser import parser as p
 
-import lib.constant as constant
-import lib.protocol as protocol
+from lib import constant, protocol
 
 
 def set_logging_level(quiet, verbose):
