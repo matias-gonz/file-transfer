@@ -76,7 +76,7 @@ def download():
                     s.sendto(resp, (host, port))
 
         except TimeoutError:
-            log.error("Lost connection with server")
+            log.error("Connection with server was lost")
             sys.exit(1)
         except StopIteration:
             break
