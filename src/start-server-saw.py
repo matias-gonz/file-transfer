@@ -5,9 +5,8 @@ import threading
 from os import path
 from parser import parser as p
 
-from lib.protocol import Connection
-
-SOCKET_TIMEOUT = 0.030  # 30 ms
+import lib.constant as constant
+import lib.protocol as protocol
 
 
 def set_logging_level(quiet, verbose):
@@ -32,10 +31,11 @@ def check_timed_out_connections(connections, s):
     for addr, conn in timed_out:
         try:
             log.info(f"Connection {addr[0]}:{addr[1]} timed out")
-            data = conn.timeout_response()
+            responses = conn.timeout_response()
 
-            if len(data) != 0:
-                s.sendto(addr, data)
+            if len(responses) != 0:
+                for resp in responses:
+                    s.sendto(resp, addr)
 
         except TimeoutError:
             log.info(
@@ -52,15 +52,15 @@ def recv_msg(connections, s, sdir):
     log.info(f"Received a message from {address[0]}:{address[1]}")
 
     if address not in connections:
-        connections[address] = Connection(address, msg, sdir)
+        connections[address] = protocol.Connection(msg, sdir)
 
-    response = connections[address].respond_to(msg)
+    try:
+        for resp in connections[address].respond_to(msg):
+            s.sendto(resp, address)
 
-    if len(response) == 0:
+    except StopIteration:
         del connections[address]
         log.debug(f"Connection with {address[0]}:{address[1]} finished")
-    else:
-        s.sendto(response, address)
 
 
 def main():
@@ -80,7 +80,7 @@ def main():
     set_logging_level(quiet, verbose)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.settimeout(SOCKET_TIMEOUT)
+        s.settimeout(constant.SOCKET_TIMEOUT)
         s.bind((host, port))
         log.debug(f"Socket binded to port {port}")
 

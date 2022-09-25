@@ -1,5 +1,5 @@
 import logging as log
-from socket import *
+import socket
 
 import constant
 
@@ -11,14 +11,14 @@ log.info(f"Server Address: {HOST}:{PORT}")
 
 
 def first_packet():
-    sequence_number = (constant.FIRST_SEQ_NUMBER).to_bytes(4, byteorder="big")
-    operation_type = (constant.UPLOAD).to_bytes(1, byteorder="big")
+    sequence_number = constant.FIRST_SEQ_NUMBER.to_bytes(4, byteorder="big")
+    operation_type = constant.UPLOAD.to_bytes(1, byteorder="big")
     filename = "prueba.txt".encode()
     return sequence_number + operation_type + filename
 
 
 def upload():
-    client_socket = socket(AF_INET, SOCK_DGRAM)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     log.debug(f"Sending first message to{(HOST, PORT)}")
     client_socket.sendto(first_packet(), (HOST, PORT))
     log.debug(f"First Message sent to{(HOST, PORT)}")
@@ -27,12 +27,14 @@ def upload():
     next_sequence_number = 1
     data = bytearray(data)
     while data:
-        sequence_number = (next_sequence_number).to_bytes(4, byteorder="big")
-        if client_socket.sendto(sequence_number+data, (HOST, PORT)):
+        sequence_number = next_sequence_number.to_bytes(4, byteorder="big")
+        if client_socket.sendto(sequence_number + data, (HOST, PORT)):
             log.debug("Sending data packets")
             data = file.read(constant.PAYLOAD_SIZE)
         next_sequence_number += 1
-    client_socket.sendto((next_sequence_number).to_bytes(4, byteorder="big"), (HOST, PORT))
+    client_socket.sendto(
+        next_sequence_number.to_bytes(4, byteorder="big"), (HOST, PORT)
+    )
     client_socket.close()
     file.close()
 
