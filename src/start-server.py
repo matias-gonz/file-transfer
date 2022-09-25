@@ -3,7 +3,8 @@ import socket
 import sys
 import threading
 from os import path
-from lib import parser, constant, protocol
+
+from lib import constant, parser, protocol
 
 
 def set_logging_level(quiet, verbose):
@@ -44,7 +45,9 @@ def recv_msg(connections, s, sdir, one_run):
 
     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
 
-    log.info(f"Received a message from {address[0]}:{address[1]} with size {len(msg)}")
+    log.info(
+        f"Received a message from {address[0]}:{address[1]} with size {len(msg)}"
+    )
 
     if address not in connections:
         try:

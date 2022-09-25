@@ -8,7 +8,7 @@ from . import constant
 def sequence_number(pkt_number):
     """Returns the sequence number for the `pkt_number`th packet"""
     # truncate to 32 bytes and skip 0 (CONN_START_SEQNUM)
-    return (pkt_number - 1) % (2 ** 32 - 1) + 1
+    return (pkt_number - 1) % (2**32 - 1) + 1
 
 
 def compose_request_msg(opcode, file_name):
@@ -23,12 +23,10 @@ def compose_request_msg(opcode, file_name):
         the composed request in a `bytes` iterable
     """
     if opcode not in constant.VALID_OPS:
-        raise ValueError(
-            "the request has an invalid operation code"
-        )
+        raise ValueError("the request has an invalid operation code")
     return compose_msg(
         constant.CONN_START_SEQNUM,
-        (opcode.to_bytes(1, byteorder="big") + file_name.encode())
+        (opcode.to_bytes(1, byteorder="big") + file_name.encode()),
     )
 
 
@@ -40,9 +38,7 @@ def compose_msg(header, payload=bytes()):
 def msg_number(msg):
     """Extracts the header number of a packet"""
     if len(msg) < 4:
-        raise ValueError(
-            "the message is less than 4 bytes"
-        )
+        raise ValueError("the message is less than 4 bytes")
     return int.from_bytes(msg[:4], byteorder="big")
 
 
@@ -58,9 +54,7 @@ def parse_request_msg(msg):
         of the request
     """
     if len(msg) < 6:
-        raise ValueError(
-            "the first message received has an invalid size"
-        )
+        raise ValueError("the first message received has an invalid size")
 
     seq_num = msg_number(msg)
     if seq_num != 0:
@@ -153,7 +147,11 @@ class Sender:
         ack_n = msg_number(msg)
         log.debug(f"Received ACK={ack_n}")
 
-        if sequence_number(self.base) < ack_n <= sequence_number(self.last_sent + 1):
+        if (
+            sequence_number(self.base)
+            < ack_n
+            <= sequence_number(self.last_sent + 1)
+        ):
             self.dup_ack = 0
             self.timeout_count = 0
             self.base = ack_n
@@ -176,7 +174,9 @@ class Sender:
         """
         if self.timeout_count == constant.RETRY_NUMBER:
             if self.final_pkt is not None and self.base == self.final_pkt:
-                raise StopIteration("finished sending packets and connection was lost")
+                raise StopIteration(
+                    "finished sending packets and connection was lost"
+                )
             raise TimeoutError("connection was lost")
 
         self.timeout_count += 1
@@ -195,10 +195,8 @@ class Sender:
         data = [self._read_next_chunk() for _ in range(n_to_send)]
         msgs = [
             compose_msg(sequence_number(i), read)
-            for i, read in enumerate(
-                data,
-                self.last_sent + 1
-            ) if len(read) > 0
+            for i, read in enumerate(data, self.last_sent + 1)
+            if len(read) > 0
         ]
 
         self.last_sent += len(msgs)
@@ -267,7 +265,7 @@ class Receiver:
             self.next += 1
 
         log.debug(f"Sending ACK={sequence_number(self.next)}")
-        return compose_msg(sequence_number(self.next)),
+        return (compose_msg(sequence_number(self.next)),)
 
     def timeout_response(self):
         """

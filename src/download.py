@@ -1,8 +1,9 @@
-import sys
 import logging as log
-from os import path
 import socket
-from lib import parser, constant, protocol
+import sys
+from os import path
+
+from lib import constant, parser, protocol
 
 HOST = "127.0.0.1"
 PORT = 6543
@@ -73,5 +74,5 @@ def download():
             break
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     download()
