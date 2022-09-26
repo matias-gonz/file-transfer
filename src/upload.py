@@ -25,7 +25,7 @@ def send_request(s, addr, msg):
         except TimeoutError:
             attempts += 1
             if attempts >= constant.RETRY_NUMBER:
-                print("Couldn't connect with server")
+                log.error("Couldn't connect with server")
                 sys.exit(1)
 
 
@@ -59,7 +59,7 @@ def upload(server_address, src, name):
                     s.sendto(resp, server_address)
 
         except TimeoutError:
-            print("Connection with server was lost")
+            log.error("Connection with server was lost")
             sys.exit(1)
         except StopIteration:
             break
