@@ -29,11 +29,18 @@ def send_request(s, msg, address):
 
 
 def set_logging_level(quiet, verbose):
-    log.basicConfig(level=log.INFO)
+    verbosity = log.INFO
     if quiet:
-        log.basicConfig(level=log.ERROR, force=True)
-    if verbose:
-        log.basicConfig(level=log.DEBUG, force=True)
+        verbosity = log.ERROR
+    elif verbose:
+        verbosity = log.DEBUG
+
+    log.basicConfig(
+        level=verbosity,
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s"
+        "- Download: %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
 
 def download(host, port, dst, name):
