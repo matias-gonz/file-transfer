@@ -26,3 +26,6 @@ server-saw:
 
 upload-saw:
 	$ python3 ./src/upload-saw.py
+
+test:
+	$ $(POETRY) run pytest ./tests
