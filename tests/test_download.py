@@ -4,7 +4,8 @@ from helpers import utils, process
 def download(size):
     src_file, dst_file = utils.create_test_files(size)
     _ = process.Server('/tmp')
-    process.Download(dst_file.path, src_file.name)
+    client = process.Download(dst_file.path, src_file.name)
+    client.wait()
     return src_file.diff(dst_file)
 
 

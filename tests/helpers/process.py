@@ -12,7 +12,10 @@ class Process:
                                   close_fds=True,
                                   universal_newlines=True,
                                   start_new_session=True)
-        self.timeout_s = 2
+        self.timeout_s = constant.TIMEOUT_S
+
+    def wait(self):
+        self.p.wait()
 
     def __del__(self):
         try:
