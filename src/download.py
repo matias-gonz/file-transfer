@@ -37,8 +37,9 @@ def set_logging_level(quiet, verbose):
 
     log.basicConfig(
         level=verbosity,
-        format="[%(asctime)s.%(msecs)03d] %(levelname)s - Download: %(message)s",
-        datefmt="%H:%M:%S"
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s"
+        "- Download: %(message)s",
+        datefmt="%H:%M:%S",
     )
 
 

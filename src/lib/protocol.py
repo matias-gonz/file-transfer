@@ -252,7 +252,10 @@ class Receiver:
 
         seq_num, data = parse_data_msg(msg)
 
-        log.debug(f"The sequence number is: {seq_num}")
+        log.debug(
+            f"Received SEQ={seq_num}, "
+            f"expected SEQ={sequence_number(self.next)}"
+        )
 
         if seq_num == sequence_number(self.next):
             self.timeout_count = 0
