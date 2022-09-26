@@ -7,23 +7,6 @@ from os import path
 from lib import constant, parser, protocol
 
 
-def set_logging_level(quiet, verbose):
-    log.basicConfig(level=log.INFO)
-    if quiet:
-        log.basicConfig(level=log.ERROR, force=True)
-    if verbose:
-        log.basicConfig(level=log.DEBUG, force=True)
-
-
-def wait_for_q():
-    print("Ingrese 'q' para finalizar...")
-    try:
-        while input() != "q":
-            pass
-    except EOFError:
-        pass
-
-
 def check_timed_out_connections(connections, s):
     timed_out = [(a, c) for a, c in connections.items() if c.timed_out()]
     for addr, conn in timed_out:
@@ -46,7 +29,6 @@ def check_timed_out_connections(connections, s):
 
 
 def recv_msg(connections, s, sdir, one_run):
-
     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
     h = address[0]
     p = address[1]
@@ -74,6 +56,29 @@ def recv_msg(connections, s, sdir, one_run):
         return one_run
 
 
+def wait_for_q():
+    log.info("Ingrese 'q' para finalizar...")
+    try:
+        while input() != "q":
+            pass
+    except EOFError:
+        pass
+
+
+def set_logging_level(quiet, verbose):
+    verbosity = log.INFO
+    if quiet:
+        verbosity = log.ERROR
+    elif verbose:
+        verbosity = log.DEBUG
+
+    log.basicConfig(
+        level=verbosity,
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s - Server: %(message)s",
+        datefmt="%H:%M:%S"
+    )
+
+
 def main():
     p = parser.server_parser()
     args = p.parse_args()
@@ -84,6 +89,8 @@ def main():
     sdir = path.expanduser(args.storage) + "/"
     one_run = args.one
 
+    set_logging_level(quiet, verbose)
+
     reading_thread = None
     if not one_run:
         reading_thread = threading.Thread(target=wait_for_q, daemon=True)
@@ -91,12 +98,11 @@ def main():
 
     connections = {}
 
-    set_logging_level(quiet, verbose)
-
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.settimeout(constant.SOCKET_TIMEOUT)
         s.bind((host, port))
-        print(f"Socket binded to port {port}")
+        if not quiet:
+            print(f"Socket bound to port {port}")
 
         while True:
             if reading_thread and not reading_thread.is_alive():

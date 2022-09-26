@@ -3,7 +3,7 @@ import argparse
 LOCAL_HOST = "127.0.0.1"
 DEFAULT_PORT = 6543
 DEFAULT_DIR_PATH = "~"
-DEFAULT_FILE_PATH = "archivos de prueba/prueba.txt"
+DEFAULT_FILE_PATH = "~/prueba.txt"
 DEFAULT_FILE_NAME = "a.out"
 
 p = argparse.ArgumentParser()
