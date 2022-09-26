@@ -4,7 +4,7 @@ from helpers import utils, process
 def upload(size):
     src_file, dst_file = utils.create_test_files(size)
     server = process.Server(utils.TMP_DIR)
-    process.Upload(src_file.path, dst_file.name)
+    _ = process.Upload(src_file.path, dst_file.name)
     server.wait()
     return src_file.diff(dst_file)
 
