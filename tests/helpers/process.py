@@ -6,12 +6,14 @@ from . import constant
 
 class Process:
     def __init__(self, cmd):
-        self.p = subprocess.Popen(cmd,
-                                  stdout=subprocess.PIPE,
-                                  bufsize=0,
-                                  close_fds=True,
-                                  universal_newlines=True,
-                                  start_new_session=True)
+        self.p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            bufsize=0,
+            close_fds=True,
+            universal_newlines=True,
+            start_new_session=True
+        )
         self.timeout_s = constant.TIMEOUT_S
 
     def wait(self):

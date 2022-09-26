@@ -3,10 +3,13 @@ import os
 import subprocess
 
 
+TMP_DIR = tempfile.gettempdir()
+
+
 class TmpFile:
     def __init__(self, path):
         self.path = path
-        self.name = self.path[len('/tmp/'):]
+        self.name = self.path[len(tempfile.gettempdir()) + 1:]
 
     def diff(self, f):
         return subprocess.Popen(['diff', self.path, f.path]).wait()
