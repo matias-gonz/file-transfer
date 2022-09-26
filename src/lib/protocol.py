@@ -109,7 +109,7 @@ class Connection:
 
     def timed_out(self):
         return time.process_time_ns() - self.t_last_msg > (
-            constant.RETRY_DELAY * 1_000_000
+            constant.CONNECTION_TIMEOUT * 1_000_000
         )
 
     def timeout_response(self):
