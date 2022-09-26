@@ -31,7 +31,7 @@ def send_request(s, addr, msg):
 
 def upload(server_address, src, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(constant.RETRY_DELAY)
+    s.settimeout(constant.SOCKET_TIMEOUT)
 
     log.debug(
         f"Sending first message to {server_address[0]}:{server_address[1]}"

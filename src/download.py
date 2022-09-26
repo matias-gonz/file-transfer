@@ -45,7 +45,7 @@ def set_logging_level(quiet, verbose):
 
 def download(host, port, dst, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(constant.RETRY_DELAY)
+    s.settimeout(constant.SOCKET_TIMEOUT)
 
     log.info(f"Server Address: {host}:{port}")
     log.debug(f"Sending first message to {(host, port)}")
