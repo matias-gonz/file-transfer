@@ -36,18 +36,7 @@ def set_logging_level(quiet, verbose):
         log.basicConfig(level=log.DEBUG, force=True)
 
 
-def download():
-    p = parser.download_parser()
-    args = p.parse_args()
-    host = args.host
-    port = args.port
-    quiet = args.quiet
-    verbose = args.verbose
-    dst = path.expanduser(args.dst)
-    name = args.name
-
-    set_logging_level(quiet, verbose)
-
+def download(host, port, dst, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(constant.RETRY_DELAY)
 
@@ -82,5 +71,20 @@ def download():
             break
 
 
+def main():
+    p = parser.download_parser()
+    args = p.parse_args()
+    host = args.host
+    port = args.port
+    quiet = args.quiet
+    verbose = args.verbose
+    dst = path.expanduser(args.dst)
+    name = args.name
+
+    set_logging_level(quiet, verbose)
+
+    download(host, port, dst, name)
+
+
 if __name__ == "__main__":
-    download()
+    main()
