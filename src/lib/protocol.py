@@ -173,7 +173,7 @@ class Sender:
         :return: an iterable of responses
         """
         if self.timeout_count == constant.RETRY_NUMBER:
-            if self.final_pkt is not None and self.base == self.final_pkt:
+            if self.base == self.final_pkt:
                 raise StopIteration(
                     "finished sending packets and connection was lost"
                 )
@@ -181,32 +181,49 @@ class Sender:
 
         self.timeout_count += 1
         # go-back-n
-        log.debug(f"Resending {len(self.buffer)} packets")
-        return (
+        msgs = [
             compose_msg(sequence_number(i), data)
             for i, data in enumerate(self.buffer, self.base)
+        ]
+        log.debug(f"Resending {len(msgs)} packets")
+        msgs_lens = ", ".join((str(len(m)) for m in msgs))
+        log.debug(
+            f"Sent {len(msgs)} messages, "
+            + (f"of size {msgs_lens}, " if len(msgs_lens) > 0 else "")
+            + f"last_sent={self.last_sent}"
         )
+        return msgs
 
     def finished(self):
         return self.base - 1 == self.final_pkt
 
     def _fill_window(self):
-        n_to_send = constant.WINDOW_SIZE - self.last_sent + self.base - 1
-        data = [self._read_next_chunk() for _ in range(n_to_send)]
-        msgs = [
-            compose_msg(sequence_number(i), read)
-            for i, read in enumerate(data, self.last_sent + 1)
-            if len(read) > 0
-        ]
+        n_to_send = self.base - 1 - self.last_sent
+
+        if self.final_pkt is not None:
+            for _ in range(len(self.buffer) + n_to_send):
+                self._read_next_chunk()
+            return tuple()
+
+        n_to_send += constant.WINDOW_SIZE
+
+        log.debug(f"Advancing window {n_to_send} spaces")
+
+        msgs = []
+        for i in range(self.last_sent + 1, self.last_sent + 1 + n_to_send):
+            d = self._read_next_chunk()
+            msgs.append(compose_msg(sequence_number(i), d))
+            if len(d) == 0:
+                self.final_pkt = self.last_sent + len(msgs)
 
         self.last_sent += len(msgs)
 
-        if len(msgs) < n_to_send and self.final_pkt is None:
-            self.last_sent += 1
-            self.final_pkt = self.last_sent
-            msgs.append(compose_msg(self.final_pkt))
-
-        log.debug(f"Sent {len(msgs)} messages, last_sent={self.last_sent}")
+        msgs_lens = ", ".join((str(len(m)) for m in msgs))
+        log.debug(
+            f"Sent {len(msgs)} messages, "
+            + (f"of size {msgs_lens}, " if len(msgs_lens) > 0 else "")
+            + f"last_sent={self.last_sent}"
+        )
         return msgs
 
     def _read_next_chunk(self):
