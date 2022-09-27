@@ -21,8 +21,10 @@ class TmpFile:
 class SizedTmpFile(TmpFile):
     def __init__(self, size):
         tmp = tempfile.NamedTemporaryFile(delete=False, mode="wb")
-        for i in range(0, size, 4096):
-            tmp.write(os.urandom(4096))
+        blk_size = 4096
+        for i in range(0, size - blk_size, blk_size):
+            tmp.write(os.urandom(blk_size))
+        tmp.write(os.urandom(size % blk_size))
         tmp.close()
         super().__init__(tmp.name)
 
