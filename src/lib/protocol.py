@@ -257,7 +257,7 @@ class Receiver:
             f"expected SEQ={sequence_number(self.next)}"
         )
         if seq_num < sequence_number(self.next):
-            return tuple()
+            return (compose_msg(sequence_number(seq_num)),)
         elif seq_num == sequence_number(self.next):
             self.timeout_count = 0
 

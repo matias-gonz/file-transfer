@@ -1,5 +1,3 @@
-import tempfile
-
 from helpers import utils, process
 
 
