@@ -18,7 +18,7 @@ def send_request(s, msg, address):
         try:
             msg = send_and_ack(s, msg, address)
             ack = protocol.msg_number(msg)
-            log.debug(f"ack {ack}, iseqnum {constant.CONN_START_SEQNUM}")
+            log.debug(f"ACK={ack}, SEQ_NUM={constant.CONN_START_SEQNUM}")
             if ack == constant.CONN_START_SEQNUM + 1:
                 return msg
 
@@ -38,7 +38,7 @@ def set_logging_level(quiet, verbose):
     log.basicConfig(
         level=verbosity,
         format="[%(asctime)s.%(msecs)03d] %(levelname)s"
-        "- Download: %(message)s",
+        " - Download: %(message)s",
         datefmt="%H:%M:%S",
     )
 
@@ -48,10 +48,10 @@ def download(host, port, dst, name):
     s.settimeout(constant.CONNECTION_TIMEOUT)
 
     log.info(f"Server Address: {host}:{port}")
-    log.debug(f"Sending first message to {(host, port)}")
+    log.debug("Sending first message to server")
     request = protocol.compose_request_msg(constant.DOWNLOAD, name)
     msg = send_request(s, request, (host, port))
-    log.debug(f"First Message sent to {(host, port)}")
+    log.debug("First Message sent to server")
 
     receiver = protocol.Receiver(dst)
 

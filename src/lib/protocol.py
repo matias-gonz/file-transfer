@@ -101,19 +101,19 @@ class Connection:
         elif opcode == constant.UPLOAD:
             self.responder = Receiver(file_path)
 
-        self.t_last_msg = time.process_time_ns()
+        self.t_last_msg = time.monotonic()
 
     def respond_to(self, msg):
-        self.t_last_msg = time.process_time_ns()
+        self.t_last_msg = time.monotonic()
         return self.responder.respond_to(msg)
 
     def timed_out(self):
-        return time.process_time_ns() - self.t_last_msg > (
-            constant.CONNECTION_TIMEOUT * 1_000_000
+        return time.monotonic() - self.t_last_msg > (
+            constant.CONNECTION_TIMEOUT
         )
 
     def timeout_response(self):
-        self.t_last_msg = time.process_time_ns()
+        self.t_last_msg = time.monotonic()
         return self.responder.timeout_response()
 
     def finished(self):
@@ -156,8 +156,8 @@ class Sender:
             self.timeout_count = 0
             self.base = ack_n
         elif ack_n == sequence_number(self.base):
-            self.dup_ack = (self.dup_ack + 1) % 3
-            if self.dup_ack == 0:
+            self.dup_ack = (self.dup_ack + 1) % constant.WINDOW_SIZE
+            if self.dup_ack == constant.DUP_ACKS_BEFORE_RETRY:
                 return self.timeout_response()
 
         if self.finished():

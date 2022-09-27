@@ -18,7 +18,7 @@ def send_request(s, addr, msg):
         try:
             msg = send_and_ack(s, addr, msg)
             ack = protocol.msg_number(msg)
-            log.debug(f"ack {ack}, iseqnum {constant.CONN_START_SEQNUM}")
+            log.debug(f"ACK={ack}, SEQ_NUM={constant.CONN_START_SEQNUM}")
             if ack == constant.CONN_START_SEQNUM + 1:
                 return msg
 
@@ -49,14 +49,13 @@ def upload(server_address, src, name):
             for resp in responses:
                 s.sendto(resp, server_address)
 
-            try:
-                address = tuple()
-                while address != server_address:
+            address = tuple()
+            while address != server_address:
+                try:
                     msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
-
-            except TimeoutError:
-                for resp in sender.timeout_response():
-                    s.sendto(resp, server_address)
+                except TimeoutError:
+                    for resp in sender.timeout_response():
+                        s.sendto(resp, server_address)
 
         except TimeoutError:
             log.error("Connection with server was lost")
@@ -74,7 +73,8 @@ def set_logging_level(quiet, verbose):
 
     log.basicConfig(
         level=verbosity,
-        format="[%(asctime)s.%(msecs)03d] %(levelname)s - Upload: %(message)s",
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s"
+        " - Upload: %(message)s",
         datefmt="%H:%M:%S",
     )
 

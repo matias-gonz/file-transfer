@@ -74,7 +74,8 @@ def set_logging_level(quiet, verbose):
 
     log.basicConfig(
         level=verbosity,
-        format="[%(asctime)s.%(msecs)03d] %(levelname)s - Server: %(message)s",
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s"
+        " - Server: %(message)s",
         datefmt="%H:%M:%S",
     )
 
