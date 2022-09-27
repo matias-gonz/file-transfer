@@ -215,6 +215,7 @@ class Sender:
             msgs.append(compose_msg(sequence_number(i), d))
             if len(d) == 0:
                 self.final_pkt = self.last_sent + len(msgs)
+                break
 
         self.last_sent += len(msgs)
 

@@ -4,7 +4,8 @@ UPLOAD = 2
 VALID_OPS = frozenset((DOWNLOAD, UPLOAD))
 
 MAX_PKT_SIZE = 4096
-PAYLOAD_SIZE = MAX_PKT_SIZE - 4
+HEADER_SIZE = 4
+PAYLOAD_SIZE = MAX_PKT_SIZE - HEADER_SIZE
 
 CONNECTION_TIMEOUT = 0.6  # seconds before connection timeout
 SOCKET_TIMEOUT = 0.030  # socket.recvfrom timeout
