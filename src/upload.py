@@ -16,11 +16,11 @@ def send_request(s, addr, msg):
     attempts = 0
     while True:
         try:
-            msg = send_and_ack(s, addr, msg)
-            ack = protocol.msg_number(msg)
+            msg_recvd = send_and_ack(s, msg, addr)
+            ack = protocol.msg_number(msg_recvd)
             log.debug(f"ACK={ack}, SEQ_NUM={constant.CONN_START_SEQNUM}")
             if ack == constant.CONN_START_SEQNUM + 1:
-                return msg
+                return msg_recvd
 
         except TimeoutError:
             attempts += 1

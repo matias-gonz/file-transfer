@@ -1,6 +1,7 @@
 import collections
 import logging as log
 import time
+from os import path
 
 from . import constant
 
@@ -126,7 +127,7 @@ class Sender:
     """
 
     def __init__(self, file_name):
-        log.debug(f"Reading from file: '{file_name}'")
+        log.debug(f"Reading from file: '{file_name}' of size {path.getsize(file_name)} Bytes")
         self.file = open(file_name, "rb")
         self.base = 1  # next expected ack
         self.last_sent = 0
@@ -281,12 +282,12 @@ class Receiver:
         if seq_num == sequence_number(self.next):
             self.timeout_count = 0
 
+            self.file.write(data)
+            self.next += 1
+
             if len(data) == 0:
                 log.info("Finished receiving file")
                 self._finished = True
-
-            self.file.write(data)
-            self.next += 1
 
         log.debug(f"Sending ACK={sequence_number(self.next)}")
         return (compose_msg(sequence_number(self.next)),)

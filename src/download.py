@@ -6,21 +6,21 @@ from os import path
 from lib import constant, parser, protocol
 
 
-def send_and_ack(s, msg, address):
-    s.sendto(msg, address)
-    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
+def send_and_ack(s, msg, addr):
+    s.sendto(msg, addr)
+    msg, addr = s.recvfrom(constant.MAX_PKT_SIZE)
     return msg
 
 
-def send_request(s, msg, address):
+def send_request(s, msg, addr):
     attempts = 0
     while True:
         try:
-            msg = send_and_ack(s, msg, address)
-            ack = protocol.msg_number(msg)
+            msg_recvd = send_and_ack(s, msg, addr)
+            ack = protocol.msg_number(msg_recvd)
             log.debug(f"ACK={ack}, SEQ_NUM={constant.CONN_START_SEQNUM}")
             if ack == constant.CONN_START_SEQNUM + 1:
-                return msg
+                return msg_recvd
 
         except TimeoutError:
             attempts += 1
