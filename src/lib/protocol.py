@@ -148,7 +148,10 @@ class Sender:
     """
 
     def __init__(self, file_name):
-        log.debug(f"Reading from file: '{file_name}' of size {path.getsize(file_name)} Bytes")
+        log.debug(
+            f"Reading from file: '{file_name}' "
+            f"of size {path.getsize(file_name)} Bytes"
+        )
         self.file = open(file_name, "rb")
         self.base = 1  # next expected ack
         self.last_sent = 0
@@ -258,7 +261,9 @@ class Sender:
     def _push_final_message(self):
         self.last_sent += 1
         self.final_pkt = self.last_sent
-        msg = compose_msg(sequence_number(self.final_pkt), )
+        msg = compose_msg(
+            sequence_number(self.final_pkt),
+        )
         self.buffer.append(msg)
         return msg
 

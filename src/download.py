@@ -18,7 +18,9 @@ def send_request(s, msg, addr):
         try:
             msg_recvd = send_and_recv(s, msg, addr)
             seq_num = protocol.msg_number(msg_recvd)
-            log.debug(f"SEQ_NUM={seq_num}, EXPECTED={constant.CONN_START_SEQNUM + 1}")
+            log.debug(
+                f"SEQ_NUM={seq_num}, EXPECTED={constant.CONN_START_SEQNUM + 1}"
+            )
             if seq_num == constant.CONN_START_SEQNUM + 1:
                 return msg_recvd
 
@@ -56,7 +58,9 @@ def download(server_address, dst, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_connection(s, protocol.Receiver(dst), server_address, msg)
+        protocol.handle_connection(
+            s, protocol.Receiver(dst), server_address, msg
+        )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)

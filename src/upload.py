@@ -41,7 +41,9 @@ def upload(server_address, src, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_connection(s, protocol.Sender(src), server_address, msg)
+        protocol.handle_connection(
+            s, protocol.Sender(src), server_address, msg
+        )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)
