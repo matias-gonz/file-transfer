@@ -83,6 +83,27 @@ def parse_data_msg(msg):
     return msg_number(msg), msg[4:]
 
 
+def handle_connection(s, server_address, responder, initial_msg):
+    msg = initial_msg
+    while True:
+        try:
+            responses = responder.respond_to(msg)
+
+            for resp in responses:
+                s.sendto(resp, server_address)
+
+            address = tuple()
+            while address != server_address:
+                try:
+                    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
+                except TimeoutError:
+                    for resp in responder.timeout_response():
+                        s.sendto(resp, server_address)
+
+        except StopIteration:
+            break
+
+
 class Connection:
     """
     Represents a server connection with a client
