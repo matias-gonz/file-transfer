@@ -5,6 +5,7 @@ FLAKE8=$(POETRY) run flake8
 PYTEST=$(POETRY) run pytest
 PACKAGE=src
 TESTS=tests
+LOSS=./loss.sh
 
 install:
 	$(POETRY) install
@@ -19,5 +20,13 @@ lint: fmt
 
 test:
 	$(PYTEST) ./${TESTS}
+
+loss-up:
+	$(LOSS) up
+
+loss-down:
+	$(LOSS) down
+
+test-loss : loss-up test loss-down
 
 all: lint test
