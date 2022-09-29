@@ -25,4 +25,4 @@ def test_download_medium():
 
 
 def test_download_big():
-    assert download(10_000_000) == 0
+    assert download(2_000_000) == 0
