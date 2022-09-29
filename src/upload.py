@@ -6,9 +6,9 @@ from os import path
 from lib import constant, parser, protocol
 
 
-def send_and_ack(s, addr, msg):
+def send_and_recv(s, addr, msg):
     s.sendto(msg, addr)
-    msg, address = s.recvfrom(4)
+    msg, address = s.recvfrom(constant.HEADER_SIZE)
     return msg
 
 
@@ -16,11 +16,11 @@ def send_request(s, addr, msg):
     attempts = 0
     while True:
         try:
-            msg = send_and_ack(s, addr, msg)
-            ack = protocol.msg_number(msg)
-            log.debug(f"ack {ack}, iseqnum {constant.CONN_START_SEQNUM}")
+            msg_recvd = send_and_recv(s, addr, msg)
+            ack = protocol.msg_number(msg_recvd)
+            log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM + 1}")
             if ack == constant.CONN_START_SEQNUM + 1:
-                return msg
+                return msg_recvd
 
         except TimeoutError:
             attempts += 1
@@ -31,38 +31,22 @@ def send_request(s, addr, msg):
 
 def upload(server_address, src, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(constant.RETRY_DELAY)
+    s.settimeout(constant.CONNECTION_TIMEOUT)
 
     log.debug(
         f"Sending first message to {server_address[0]}:{server_address[1]}"
     )
     request = protocol.compose_request_msg(constant.UPLOAD, name)
     msg = send_request(s, server_address, request)
-    log.debug(f"First Message sent to {server_address[0]}:{server_address[1]}")
+    log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
-    sender = protocol.Sender(src)
-
-    while True:
-        try:
-            responses = sender.respond_to(msg)
-
-            for resp in responses:
-                s.sendto(resp, server_address)
-
-            try:
-                address = tuple()
-                while address != server_address:
-                    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
-
-            except TimeoutError:
-                for resp in sender.timeout_response():
-                    s.sendto(resp, server_address)
-
-        except TimeoutError:
-            log.error("Connection with server was lost")
-            sys.exit(1)
-        except StopIteration:
-            break
+    try:
+        protocol.handle_clientside_conn(
+            s, server_address, protocol.Sender(src), msg
+        )
+    except TimeoutError:
+        log.error("Connection with server was lost")
+        sys.exit(1)
 
 
 def set_logging_level(quiet, verbose):
@@ -74,7 +58,8 @@ def set_logging_level(quiet, verbose):
 
     log.basicConfig(
         level=verbosity,
-        format="[%(asctime)s.%(msecs)03d] %(levelname)s - Upload: %(message)s",
+        format="[%(asctime)s.%(msecs)03d] %(levelname)s"
+        " - Upload: %(message)s",
         datefmt="%H:%M:%S",
     )
 
