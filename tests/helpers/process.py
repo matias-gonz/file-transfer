@@ -28,9 +28,9 @@ class Process:
 
 class Server(Process):
 
-    def __init__(self, storage_dir):
+    def __init__(self, storage_dir, port):
         cmd = [constant.PYTHON, '-u', constant.SERVER,
-               '-o', '-v', '-s', storage_dir]
+               '-o', '-v', '-s', storage_dir, '-p', str(port)]
         super().__init__(cmd)
 
         for line in iter(self.p.stdout.readline, ""):
@@ -40,15 +40,15 @@ class Server(Process):
 
 class Upload(Process):
 
-    def __init__(self, src_path, dst_name):
+    def __init__(self, src_path, dst_name, port):
         cmd = [constant.PYTHON, '-u', constant.UPLOAD,
-               '-v', '-s', src_path, '-n', dst_name]
+               '-v', '-s', src_path, '-n', dst_name, '-p', str(port)]
         super().__init__(cmd)
 
 
 class Download(Process):
 
-    def __init__(self, dst_path, src_name):
+    def __init__(self, dst_path, src_name, port):
         cmd = [constant.PYTHON, '-u', constant.DOWNLOAD,
-               '-v', '-d', dst_path, '-n', src_name]
+               '-v', '-d', dst_path, '-n', src_name, '-p', str(port)]
         super().__init__(cmd)

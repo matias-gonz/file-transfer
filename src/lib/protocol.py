@@ -1,6 +1,7 @@
 import collections
 import logging as log
 import time
+from os import path
 
 from . import constant
 
@@ -82,6 +83,30 @@ def parse_data_msg(msg):
     return msg_number(msg), msg[4:]
 
 
+def handle_clientside_conn(s, server_address, responder, initial_msg):
+    msg = initial_msg
+    while True:
+        try:
+            responses = responder.respond_to(msg)
+
+            for resp in responses:
+                s.sendto(resp, server_address)
+
+            if responder.finished():
+                return
+
+            address = tuple()
+            while address != server_address:
+                try:
+                    msg, address = s.recvfrom(constant.MAX_PKT_SIZE)
+                except TimeoutError:
+                    for resp in responder.timeout_response():
+                        s.sendto(resp, server_address)
+
+        except StopIteration:
+            return
+
+
 class Connection:
     """
     Represents a server connection with a client
@@ -126,7 +151,10 @@ class Sender:
     """
 
     def __init__(self, file_name):
-        log.debug(f"Reading from file: '{file_name}'")
+        log.debug(
+            f"Reading from file: '{file_name}' "
+            f"of size {path.getsize(file_name)} Bytes"
+        )
         self.file = open(file_name, "rb")
         self.base = 1  # next expected ack
         self.last_sent = 0
@@ -181,43 +209,30 @@ class Sender:
 
         self.timeout_count += 1
         # go-back-n
-        msgs = [
-            compose_msg(sequence_number(i), data)
-            for i, data in enumerate(self.buffer, self.base)
-        ]
-        log.debug(f"Resending {len(msgs)} packets")
+        msgs = [msg for _, msg in enumerate(self.buffer, self.base)]
         msgs_lens = ", ".join((str(len(m)) for m in msgs))
         log.debug(
-            f"Sent {len(msgs)} messages, "
+            f"Resend {len(msgs)} messages from {self.base}, "
             + (f"of size {msgs_lens}, " if len(msgs_lens) > 0 else "")
             + f"last_sent={self.last_sent}"
         )
         return msgs
 
     def finished(self):
-        return self.base - 1 == self.final_pkt
+        return self.final_pkt is not None and self.base - 1 == self.final_pkt
 
     def _fill_window(self):
-        n_to_send = self.base - 1 - self.last_sent
+        not_acked = self.last_sent - self.base + 1
+        n_to_remove = len(self.buffer) - not_acked
+        n_to_send = constant.WINDOW_SIZE - not_acked
 
-        if self.final_pkt is not None:
-            for _ in range(len(self.buffer) + n_to_send):
-                self._read_next_chunk()
-            return tuple()
+        self._pop_acked(n_to_remove)
+        msgs = self._push_next_msgs(n_to_send, n_to_remove)
 
-        n_to_send += constant.WINDOW_SIZE
-
-        log.debug(f"Advancing window {n_to_send} spaces")
-
-        msgs = []
-        for i in range(self.last_sent + 1, self.last_sent + 1 + n_to_send):
-            d = self._read_next_chunk()
-            msgs.append(compose_msg(sequence_number(i), d))
-            if len(d) == 0:
-                self.final_pkt = self.last_sent + len(msgs)
-                break
-
-        self.last_sent += len(msgs)
+        transfer_ended = len(msgs) == 0 and not_acked == 0
+        if transfer_ended and self.final_pkt is None:
+            msg = self._push_final_message()
+            msgs.append(msg)
 
         msgs_lens = ", ".join((str(len(m)) for m in msgs))
         log.debug(
@@ -227,14 +242,33 @@ class Sender:
         )
         return msgs
 
-    def _read_next_chunk(self):
-        read = self.file.read(constant.PAYLOAD_SIZE)
-        if len(self.buffer) > 0 and len(self.buffer[-1]) == 0:
-            if len(self.buffer) > 1:
-                self.buffer.popleft()
-        else:
-            self.buffer.append(read)
-        return read
+    def _pop_acked(self, n_to_remove):
+        for _ in range(n_to_remove):
+            self.buffer.popleft()
+
+    def _push_next_msgs(self, n_to_send, n_to_remove):
+        msgs = []
+        for i in range(self.last_sent + 1, self.last_sent + 1 + n_to_send):
+            d = self.file.read(constant.PAYLOAD_SIZE)
+
+            if len(d) == 0:
+                break
+
+            msg = compose_msg(sequence_number(i), d)
+            self.buffer.append(msg)
+            msgs.append(msg)
+
+        self.last_sent += len(msgs)
+        return msgs
+
+    def _push_final_message(self):
+        self.last_sent += 1
+        self.final_pkt = self.last_sent
+        msg = compose_msg(
+            sequence_number(self.final_pkt),
+        )
+        self.buffer.append(msg)
+        return msg
 
     def __del__(self):
         try:
@@ -274,17 +308,15 @@ class Receiver:
             f"Received SEQ={seq_num}, "
             f"expected SEQ={sequence_number(self.next)}"
         )
-        if seq_num + 1 < sequence_number(self.next):
-            return tuple()
-        elif seq_num == sequence_number(self.next):
+        if seq_num == sequence_number(self.next):
             self.timeout_count = 0
+
+            self.file.write(data)
+            self.next += 1
 
             if len(data) == 0:
                 log.info("Finished receiving file")
                 self._finished = True
-
-            self.file.write(data)
-            self.next += 1
 
         log.debug(f"Sending ACK={sequence_number(self.next)}")
         return (compose_msg(sequence_number(self.next)),)
