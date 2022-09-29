@@ -38,4 +38,4 @@ def test_upload_medium():
 
 
 def test_upload_big():
-    assert upload(10_000_000) == 0
+    assert upload(2_000_000) == 0
