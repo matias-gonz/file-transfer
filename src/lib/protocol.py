@@ -83,7 +83,7 @@ def parse_data_msg(msg):
     return msg_number(msg), msg[4:]
 
 
-def handle_connection(s, server_address, responder, initial_msg):
+def handle_clientside_conn(s, server_address, responder, initial_msg):
     msg = initial_msg
     while True:
         try:
@@ -91,6 +91,9 @@ def handle_connection(s, server_address, responder, initial_msg):
 
             for resp in responses:
                 s.sendto(resp, server_address)
+
+            if responder.finished():
+                return
 
             address = tuple()
             while address != server_address:
@@ -101,7 +104,7 @@ def handle_connection(s, server_address, responder, initial_msg):
                         s.sendto(resp, server_address)
 
         except StopIteration:
-            break
+            return
 
 
 class Connection:

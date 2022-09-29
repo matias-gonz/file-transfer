@@ -16,7 +16,7 @@ def send_request(s, addr, msg):
     attempts = 0
     while True:
         try:
-            msg_recvd = send_and_recv(s, msg, addr)
+            msg_recvd = send_and_recv(s, addr, msg)
             ack = protocol.msg_number(msg_recvd)
             log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM + 1}")
             if ack == constant.CONN_START_SEQNUM + 1:
@@ -41,8 +41,8 @@ def upload(server_address, src, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_connection(
-            s, protocol.Sender(src), server_address, msg
+        protocol.handle_clientside_conn(
+            s, server_address, protocol.Sender(src), msg
         )
     except TimeoutError:
         log.error("Connection with server was lost")

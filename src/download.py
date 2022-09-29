@@ -6,17 +6,17 @@ from os import path
 from lib import constant, parser, protocol
 
 
-def send_and_recv(s, msg, addr):
+def send_and_recv(s, addr, msg):
     s.sendto(msg, addr)
     msg, addr = s.recvfrom(constant.MAX_PKT_SIZE)
     return msg
 
 
-def send_request(s, msg, addr):
+def send_request(s, addr, msg):
     attempts = 0
     while True:
         try:
-            msg_recvd = send_and_recv(s, msg, addr)
+            msg_recvd = send_and_recv(s, addr, msg)
             seq_num = protocol.msg_number(msg_recvd)
             log.debug(
                 f"SEQ_NUM={seq_num}, EXPECTED={constant.CONN_START_SEQNUM + 1}"
@@ -58,8 +58,8 @@ def download(server_address, dst, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_connection(
-            s, protocol.Receiver(dst), server_address, msg
+        protocol.handle_clientside_conn(
+            s, server_address, protocol.Receiver(dst), msg
         )
     except TimeoutError:
         log.error("Connection with server was lost")
