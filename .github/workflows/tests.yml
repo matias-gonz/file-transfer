@@ -48,5 +48,7 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
+            ./loss.sh up
             source .venv/bin/activate
             pytest tests
+            ./loss.sh down
