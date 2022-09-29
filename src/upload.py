@@ -7,9 +7,9 @@ from lib import constant, parser, protocol
 
 
 def send_and_recv(s, addr, msg):
-    s.sendto(msg, addr)
     attempts = 0
     while True:
+        s.sendto(msg, addr)
         try:
             return s.recvfrom(constant.MAX_PKT_SIZE)[0]
         except TimeoutError:
@@ -29,7 +29,9 @@ def send_request(s, addr, msg):
             response_code = protocol.msg_response_code(msg_recvd)
 
             if response_code != constant.ALL_OK:
-                log.error(f"The server returned a response code of {response_code}")
+                log.error(
+                    f"The server returned a response code of {response_code}"
+                )
                 sys.exit(2 + response_code)
 
             return msg_recvd

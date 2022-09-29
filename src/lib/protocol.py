@@ -47,8 +47,7 @@ def msg_number(msg):
 
 def request_response_msg(response_code):
     return compose_msg(
-        constant.CONN_START_SEQNUM,
-        response_code.to_bytes(1, byteorder="big")
+        constant.CONN_START_SEQNUM, response_code.to_bytes(1, byteorder="big")
     )
 
 
@@ -87,9 +86,7 @@ def parse_request_msg(msg):
     file_name = msg[5:].decode()[:255]
 
     if "/../" in file_name or file_name.startswith("../"):
-        raise ValueError(
-            "the first message received has an invalid file name"
-        )
+        raise ValueError("the first message received has an invalid file name")
 
     return (
         seq_num,
@@ -161,7 +158,7 @@ class Connection:
         self.t_last_msg = time.monotonic()
         if msg_number(msg) == constant.CONN_START_SEQNUM:
             log.debug(f"Sending response code {self.resp_code}")
-            return request_response_msg(self.resp_code),
+            return (request_response_msg(self.resp_code),)
         elif self.resp_code != constant.ALL_OK:
             raise StopIteration(
                 f"finished connection with error {self.resp_code}"
