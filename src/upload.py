@@ -8,25 +8,30 @@ from lib import constant, parser, protocol
 
 def send_and_recv(s, addr, msg):
     s.sendto(msg, addr)
-    msg, address = s.recvfrom(constant.HEADER_SIZE)
-    return msg
+    attempts = 0
+    try:
+        return s.recvfrom(constant.MAX_PKT_SIZE)[0]
+    except TimeoutError:
+        attempts += 1
+        if attempts >= constant.RETRY_NUMBER:
+            log.error("Couldn't connect with server")
+            sys.exit(1)
 
 
 def send_request(s, addr, msg):
-    attempts = 0
     while True:
-        try:
-            msg_recvd = send_and_recv(s, addr, msg)
-            ack = protocol.msg_number(msg_recvd)
-            log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM + 1}")
-            if ack == constant.CONN_START_SEQNUM + 1:
-                return msg_recvd
+        msg_recvd = send_and_recv(s, addr, msg)
+        ack = protocol.msg_number(msg_recvd)
+        log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM}")
 
-        except TimeoutError:
-            attempts += 1
-            if attempts >= constant.RETRY_NUMBER:
-                log.error("Couldn't connect with server")
-                sys.exit(1)
+        if ack == constant.CONN_START_SEQNUM:
+            response_code = protocol.msg_response_code(msg_recvd)
+
+            if response_code != constant.ALL_OK:
+                log.error(f"The server returned a response code of {response_code}")
+                sys.exit(2 + response_code)
+
+            return msg_recvd
 
 
 def upload(server_address, src, name):

@@ -39,8 +39,23 @@ def compose_msg(header, payload=bytes()):
 def msg_number(msg):
     """Extracts the header number of a packet"""
     if len(msg) < 4:
-        raise ValueError("the message is less than 4 bytes")
+        raise ValueError(
+            f"the message is less than 4 bytes (has {len(msg)} B)"
+        )
     return int.from_bytes(msg[:4], byteorder="big")
+
+
+def request_response_msg(response_code):
+    return compose_msg(
+        constant.CONN_START_SEQNUM,
+        response_code.to_bytes(1, byteorder="big")
+    )
+
+
+def msg_response_code(msg):
+    if len(msg) != 5:
+        raise ValueError(f"the message is not 5 bytes (has {len(msg)} B)")
+    return int.from_bytes(msg[4:5], byteorder="big")
 
 
 def parse_request_msg(msg):
@@ -69,7 +84,12 @@ def parse_request_msg(msg):
             "the first message received has an invalid operation code"
         )
 
-    file_name = msg[5:].decode()
+    file_name = msg[5:].decode()[:255]
+
+    if "/../" in file_name or file_name.startswith("../"):
+        raise ValueError(
+            "the first message received has an invalid file name"
+        )
 
     return (
         seq_num,
@@ -113,7 +133,7 @@ class Connection:
     """
 
     def __init__(self, msg, storage_dir):
-        self.error_code = constant.ALL_OK
+        self.resp_code = constant.ALL_OK
         seq_num, opcode, file_name = parse_request_msg(msg)
 
         log.debug(f"The first sequence number is: {seq_num}")
@@ -133,20 +153,18 @@ class Connection:
                 self.file = open(file_path, "wb")
                 self.responder = Receiver(self.file)
         except OSError:
-            self.error_code = constant.ERROR_OPENING_FILE
+            self.resp_code = constant.ERROR_OPENING_FILE
 
         self.t_last_msg = time.monotonic()
 
     def respond_to(self, msg):
         self.t_last_msg = time.monotonic()
         if msg_number(msg) == constant.CONN_START_SEQNUM:
-            return (compose_msg(
-                constant.CONN_START_SEQNUM,
-                self.error_code.to_bytes(4, byteorder="big")
-            ),)
-        elif self.error_code != constant.ALL_OK:
+            log.debug(f"Sending response code {self.resp_code}")
+            return request_response_msg(self.resp_code),
+        elif self.resp_code != constant.ALL_OK:
             raise StopIteration(
-                f"finished connection with error {self.error_code}"
+                f"finished connection with error {self.resp_code}"
             )
         return self.responder.respond_to(msg)
 
@@ -160,7 +178,7 @@ class Connection:
         return self.responder.timeout_response()
 
     def finished(self):
-        return self.error_code != constant.ALL_OK or self.responder.finished()
+        return self.resp_code != constant.ALL_OK or self.responder.finished()
 
     def __del__(self):
         try:
@@ -247,7 +265,7 @@ class Sender:
         n_to_send = constant.WINDOW_SIZE - not_acked
 
         self._pop_acked(n_to_remove)
-        msgs = self._push_next_msgs(n_to_send, n_to_remove)
+        msgs = self._push_next_msgs(n_to_send)
 
         transfer_ended = len(msgs) == 0 and not_acked == 0
         if transfer_ended and self.final_pkt is None:
@@ -266,7 +284,7 @@ class Sender:
         for _ in range(n_to_remove):
             self.buffer.popleft()
 
-    def _push_next_msgs(self, n_to_send, n_to_remove):
+    def _push_next_msgs(self, n_to_send):
         msgs = []
         for i in range(self.last_sent + 1, self.last_sent + 1 + n_to_send):
             d = self.file.read(constant.PAYLOAD_SIZE)

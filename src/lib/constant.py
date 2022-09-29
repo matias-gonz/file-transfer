@@ -16,6 +16,6 @@ DUP_ACKS_BEFORE_RETRY = 3  # number of duplicate ACKs before resending packets
 # sequence number of the first packet sent from client (don't change)
 CONN_START_SEQNUM = 0
 
-# server response error codes
+# server response codes
 ALL_OK = 0
 ERROR_OPENING_FILE = 1
