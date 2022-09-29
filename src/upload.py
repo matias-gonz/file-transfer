@@ -41,12 +41,19 @@ def upload(server_address, src, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_clientside_conn(
-            s, server_address, protocol.Sender(src), msg
+        log.debug(
+            f"Reading from file: '{src}' " f"of size {path.getsize(src)} Bytes"
         )
+        with open(src, "rb") as f:
+            protocol.handle_clientside_conn(
+                s, server_address, protocol.Sender(f), msg
+            )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)
+    except OSError:
+        log.error("Couldn't open file for read")
+        sys.exit(2)
 
 
 def set_logging_level(quiet, verbose):

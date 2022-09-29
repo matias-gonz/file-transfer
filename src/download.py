@@ -58,12 +58,17 @@ def download(server_address, dst, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_clientside_conn(
-            s, server_address, protocol.Receiver(dst), msg
-        )
+        log.debug(f"Writing to file: '{dst}'")
+        with open(dst, "wb") as f:
+            protocol.handle_clientside_conn(
+                s, server_address, protocol.Receiver(f), msg
+            )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)
+    except OSError:
+        log.error("Couldn't open file for write")
+        sys.exit(2)
 
 
 def main():

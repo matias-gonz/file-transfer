@@ -113,6 +113,7 @@ class Connection:
     """
 
     def __init__(self, msg, storage_dir):
+        self.error_code = constant.ALL_OK
         seq_num, opcode, file_name = parse_request_msg(msg)
 
         log.debug(f"The first sequence number is: {seq_num}")
@@ -121,15 +122,32 @@ class Connection:
 
         file_path = storage_dir + file_name
 
-        if opcode == constant.DOWNLOAD:
-            self.responder = Sender(file_path)
-        elif opcode == constant.UPLOAD:
-            self.responder = Receiver(file_path)
+        try:
+            if opcode == constant.DOWNLOAD:
+                log.debug(f"Reading from file: '{file_path}'")
+                self.file = open(file_path, "rb")
+                log.debug(f"The file has {path.getsize(file_path)} Bytes")
+                self.responder = Sender(self.file)
+            elif opcode == constant.UPLOAD:
+                log.debug(f"Writing to file: '{file_path}'")
+                self.file = open(file_path, "wb")
+                self.responder = Receiver(self.file)
+        except OSError:
+            self.error_code = constant.ERROR_OPENING_FILE
 
         self.t_last_msg = time.monotonic()
 
     def respond_to(self, msg):
         self.t_last_msg = time.monotonic()
+        if msg_number(msg) == constant.CONN_START_SEQNUM:
+            return (compose_msg(
+                constant.CONN_START_SEQNUM,
+                self.error_code.to_bytes(4, byteorder="big")
+            ),)
+        elif self.error_code != constant.ALL_OK:
+            raise StopIteration(
+                f"finished connection with error {self.error_code}"
+            )
         return self.responder.respond_to(msg)
 
     def timed_out(self):
@@ -142,7 +160,13 @@ class Connection:
         return self.responder.timeout_response()
 
     def finished(self):
-        return self.responder.finished()
+        return self.error_code != constant.ALL_OK or self.responder.finished()
+
+    def __del__(self):
+        try:
+            self.file.close()
+        except AttributeError:
+            pass
 
 
 class Sender:
@@ -150,12 +174,8 @@ class Sender:
     A helper class that responds to ACK messages and sends data from a file
     """
 
-    def __init__(self, file_name):
-        log.debug(
-            f"Reading from file: '{file_name}' "
-            f"of size {path.getsize(file_name)} Bytes"
-        )
-        self.file = open(file_name, "rb")
+    def __init__(self, file):
+        self.file = file
         self.base = 1  # next expected ack
         self.last_sent = 0
         self.dup_ack = 0
@@ -270,12 +290,6 @@ class Sender:
         self.buffer.append(msg)
         return msg
 
-    def __del__(self):
-        try:
-            self.file.close()
-        except AttributeError:
-            pass
-
 
 class Receiver:
     """
@@ -283,9 +297,8 @@ class Receiver:
     data to a file
     """
 
-    def __init__(self, file_name):
-        log.debug(f"Writing to file: '{file_name}'")
-        self.file = open(file_name, "wb")
+    def __init__(self, file):
+        self.file = file
         self.next = 1
         self.timeout_count = 0
         self._finished = False
@@ -335,9 +348,3 @@ class Receiver:
 
     def finished(self):
         return self._finished
-
-    def __del__(self):
-        try:
-            self.file.close()
-        except AttributeError:
-            pass
