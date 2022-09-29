@@ -9,13 +9,14 @@ from lib import constant, parser, protocol
 def send_and_recv(s, addr, msg):
     s.sendto(msg, addr)
     attempts = 0
-    try:
-        return s.recvfrom(constant.MAX_PKT_SIZE)[0]
-    except TimeoutError:
-        attempts += 1
-        if attempts >= constant.RETRY_NUMBER:
-            log.error("Couldn't connect with server")
-            sys.exit(1)
+    while True:
+        try:
+            return s.recvfrom(constant.MAX_PKT_SIZE)[0]
+        except TimeoutError:
+            attempts += 1
+            if attempts >= constant.RETRY_NUMBER:
+                log.error("Couldn't connect with server")
+                sys.exit(1)
 
 
 def send_request(s, addr, msg):
