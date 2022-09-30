@@ -1,5 +1,6 @@
 import logging as log
 import socket
+import sys
 from os import path
 
 from lib import constant, parser, protocol
@@ -102,6 +103,8 @@ def main():
             except KeyboardInterrupt:
                 break
 
+    return 130 if len(connections) > 0 else 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
