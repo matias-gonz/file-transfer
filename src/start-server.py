@@ -56,6 +56,30 @@ def recv_msg(connections, s, sdir, one_run):
         return one_run
 
 
+def server(address, sdir, quiet, one_run):
+    connections = {}
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.settimeout(constant.SOCKET_TIMEOUT)
+        s.bind(address)
+        if not quiet:
+            print(f"Socket bound to port {address[1]}")
+
+        while True:
+            check_timed_out_connections(connections, s)
+
+            try:
+                ended = recv_msg(connections, s, sdir, one_run)
+                if ended:
+                    break
+            except TimeoutError:
+                continue
+            except KeyboardInterrupt:
+                break
+
+    return 130 if len(connections) > 0 else 0
+
+
 def set_logging_level(quiet, verbose):
     verbosity = log.INFO
     if quiet:
@@ -81,29 +105,11 @@ def main():
     sdir = path.expanduser(args.storage) + "/"
     one_run = args.one
 
+    protocol.WINDOW_SIZE = args.window
+
     set_logging_level(quiet, verbose)
 
-    connections = {}
-
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.settimeout(constant.SOCKET_TIMEOUT)
-        s.bind((host, port))
-        if not quiet:
-            print(f"Socket bound to port {port}")
-
-        while True:
-            check_timed_out_connections(connections, s)
-
-            try:
-                ended = recv_msg(connections, s, sdir, one_run)
-                if ended:
-                    break
-            except TimeoutError:
-                continue
-            except KeyboardInterrupt:
-                break
-
-    return 130 if len(connections) > 0 else 0
+    return server((host, port), sdir, quiet, one_run)
 
 
 if __name__ == "__main__":

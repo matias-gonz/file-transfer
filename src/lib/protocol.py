@@ -5,6 +5,10 @@ from os import path
 
 from . import constant
 
+# size of the sending window (set to 1 for stop-and-wait)
+# is redefined on program start
+WINDOW_SIZE = 10
+
 
 def sequence_number(pkt_number):
     """Returns the sequence number for the `pkt_number`th packet"""
@@ -195,7 +199,7 @@ class Sender:
         self.last_sent = 0
         self.dup_ack = 0
         self.timeout_count = 0
-        self.buffer = collections.deque(maxlen=constant.WINDOW_SIZE)
+        self.buffer = collections.deque(maxlen=WINDOW_SIZE)
         self.final_pkt = None
 
     def respond_to(self, msg):
@@ -219,7 +223,7 @@ class Sender:
             self.timeout_count = 0
             self.base = ack_n
         elif ack_n == sequence_number(self.base):
-            self.dup_ack = (self.dup_ack + 1) % constant.WINDOW_SIZE
+            self.dup_ack = (self.dup_ack + 1) % WINDOW_SIZE
             if self.dup_ack == constant.DUP_ACKS_BEFORE_RETRY:
                 return self.timeout_response()
 
@@ -259,7 +263,7 @@ class Sender:
     def _fill_window(self):
         not_acked = self.last_sent - self.base + 1
         n_to_remove = len(self.buffer) - not_acked
-        n_to_send = constant.WINDOW_SIZE - not_acked
+        n_to_send = WINDOW_SIZE - not_acked
 
         self._pop_acked(n_to_remove)
         msgs = self._push_next_msgs(n_to_send)

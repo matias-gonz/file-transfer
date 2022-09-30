@@ -9,9 +9,7 @@ from lib import constant, parser, protocol
 def send_and_recv(s, addr, msg):
     attempts = 0
     while True:
-        log.debug(
-            f"Sending first message to {addr[0]}:{addr[1]}"
-        )
+        log.debug(f"Sending first message to {addr[0]}:{addr[1]}")
         s.sendto(msg, addr)
         try:
             return s.recvfrom(constant.MAX_PKT_SIZE)[0]
