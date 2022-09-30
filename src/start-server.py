@@ -38,7 +38,8 @@ def recv_msg(connections, s, sdir, one_run):
     if address not in connections:
         try:
             connections[address] = protocol.Connection(msg, sdir)
-        except ValueError:
+        except ValueError as e:
+            log.error(f"Invalid request: {e}")
             return False
 
     try:

@@ -7,26 +7,34 @@ from lib import constant, parser, protocol
 
 
 def send_and_recv(s, addr, msg):
-    s.sendto(msg, addr)
-    msg, address = s.recvfrom(constant.HEADER_SIZE)
-    return msg
-
-
-def send_request(s, addr, msg):
     attempts = 0
     while True:
+        s.sendto(msg, addr)
         try:
-            msg_recvd = send_and_recv(s, addr, msg)
-            ack = protocol.msg_number(msg_recvd)
-            log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM + 1}")
-            if ack == constant.CONN_START_SEQNUM + 1:
-                return msg_recvd
-
+            return s.recvfrom(constant.MAX_PKT_SIZE)[0]
         except TimeoutError:
             attempts += 1
             if attempts >= constant.RETRY_NUMBER:
                 log.error("Couldn't connect with server")
                 sys.exit(1)
+
+
+def send_request(s, addr, msg):
+    while True:
+        msg_recvd = send_and_recv(s, addr, msg)
+        ack = protocol.msg_number(msg_recvd)
+        log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM}")
+
+        if ack == constant.CONN_START_SEQNUM:
+            response_code = protocol.msg_response_code(msg_recvd)
+
+            if response_code != constant.ALL_OK:
+                log.error(
+                    f"The server returned a response code of {response_code}"
+                )
+                sys.exit(2 + response_code)
+
+            return msg_recvd
 
 
 def upload(server_address, src, name):
@@ -41,12 +49,19 @@ def upload(server_address, src, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_clientside_conn(
-            s, server_address, protocol.Sender(src), msg
+        log.debug(
+            f"Reading from file: '{src}' " f"of size {path.getsize(src)} Bytes"
         )
+        with open(src, "rb") as f:
+            protocol.handle_clientside_conn(
+                s, server_address, protocol.Sender(f), msg
+            )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)
+    except OSError:
+        log.error("Couldn't open file for read")
+        sys.exit(2)
 
 
 def set_logging_level(quiet, verbose):

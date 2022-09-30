@@ -7,28 +7,34 @@ from lib import constant, parser, protocol
 
 
 def send_and_recv(s, addr, msg):
-    s.sendto(msg, addr)
-    msg, addr = s.recvfrom(constant.MAX_PKT_SIZE)
-    return msg
-
-
-def send_request(s, addr, msg):
     attempts = 0
     while True:
+        s.sendto(msg, addr)
         try:
-            msg_recvd = send_and_recv(s, addr, msg)
-            seq_num = protocol.msg_number(msg_recvd)
-            log.debug(
-                f"SEQ_NUM={seq_num}, EXPECTED={constant.CONN_START_SEQNUM + 1}"
-            )
-            if seq_num == constant.CONN_START_SEQNUM + 1:
-                return msg_recvd
-
+            return s.recvfrom(constant.MAX_PKT_SIZE)[0]
         except TimeoutError:
+            log.debug("Socket recv timeouted")
             attempts += 1
             if attempts >= constant.RETRY_NUMBER:
                 log.error("Couldn't connect with server")
                 sys.exit(1)
+
+
+def send_request(s, addr, msg):
+    while True:
+        msg_recvd = send_and_recv(s, addr, msg)
+        seq_num = protocol.msg_number(msg_recvd)
+        log.debug(f"SEQ_NUM={seq_num}, EXPECTED={constant.CONN_START_SEQNUM}")
+        if seq_num == constant.CONN_START_SEQNUM:
+            response_code = protocol.msg_response_code(msg_recvd)
+
+            if response_code != constant.ALL_OK:
+                log.error(
+                    f"The server returned a response code of {response_code}"
+                )
+                sys.exit(2 + response_code)
+
+            return send_and_recv(s, addr, protocol.compose_msg(1))
 
 
 def set_logging_level(quiet, verbose):
@@ -58,12 +64,17 @@ def download(server_address, dst, name):
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
 
     try:
-        protocol.handle_clientside_conn(
-            s, server_address, protocol.Receiver(dst), msg
-        )
+        log.debug(f"Writing to file: '{dst}'")
+        with open(dst, "wb") as f:
+            protocol.handle_clientside_conn(
+                s, server_address, protocol.Receiver(f), msg
+            )
     except TimeoutError:
         log.error("Connection with server was lost")
         sys.exit(1)
+    except OSError:
+        log.error("Couldn't open file for write")
+        sys.exit(2)
 
 
 def main():
