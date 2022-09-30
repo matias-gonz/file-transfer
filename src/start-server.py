@@ -1,7 +1,5 @@
 import logging as log
 import socket
-import sys
-import threading
 from os import path
 
 from lib import constant, parser, protocol
@@ -57,15 +55,6 @@ def recv_msg(connections, s, sdir, one_run):
         return one_run
 
 
-def wait_for_q():
-    log.info("Ingrese 'q' para finalizar...")
-    try:
-        while input() != "q":
-            pass
-    except EOFError:
-        pass
-
-
 def set_logging_level(quiet, verbose):
     verbosity = log.INFO
     if quiet:
@@ -93,11 +82,6 @@ def main():
 
     set_logging_level(quiet, verbose)
 
-    reading_thread = None
-    if not one_run:
-        reading_thread = threading.Thread(target=wait_for_q, daemon=True)
-        reading_thread.start()
-
     connections = {}
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -107,9 +91,6 @@ def main():
             print(f"Socket bound to port {port}")
 
         while True:
-            if reading_thread and not reading_thread.is_alive():
-                break
-
             check_timed_out_connections(connections, s)
 
             try:
@@ -118,13 +99,9 @@ def main():
                     break
             except TimeoutError:
                 continue
-
-    if reading_thread:
-        reading_thread.join()
+            except KeyboardInterrupt:
+                break
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit(130)
+    main()
