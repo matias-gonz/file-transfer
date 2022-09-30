@@ -17,7 +17,7 @@ class Process:
         self.timeout_s = constant.TIMEOUT_S
 
     def wait(self):
-        self.p.wait()
+        return self.p.wait()
 
     def __del__(self):
         try:
