@@ -19,6 +19,9 @@ class Process:
     def wait(self):
         return self.p.wait()
 
+    def kill(self):
+        self.p.kill()
+
     def __del__(self):
         try:
             self.p.wait(timeout=self.timeout_s)
@@ -28,9 +31,11 @@ class Process:
 
 class Server(Process):
 
-    def __init__(self, storage_dir, port):
+    def __init__(self, storage_dir, port, onerun=True):
         cmd = [constant.PYTHON, '-u', constant.SERVER,
-               '-o', '-v', '-s', storage_dir, '-p', str(port)]
+               '-v', '-s', storage_dir, '-p', str(port)]
+        if onerun:
+            cmd.append('-o')
         super().__init__(cmd)
 
         for line in iter(self.p.stdout.readline, ""):

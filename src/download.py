@@ -9,6 +9,9 @@ from lib import constant, parser, protocol
 def send_and_recv(s, addr, msg):
     attempts = 0
     while True:
+        log.debug(
+            f"Sending first message to {addr[0]}:{addr[1]}"
+        )
         s.sendto(msg, addr)
         try:
             return s.recvfrom(constant.MAX_PKT_SIZE)[0]
@@ -56,9 +59,6 @@ def download(server_address, dst, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(constant.CONNECTION_TIMEOUT)
 
-    log.debug(
-        f"Sending first message to {server_address[0]}:{server_address[1]}"
-    )
     request = protocol.compose_request_msg(constant.DOWNLOAD, name)
     msg = send_request(s, server_address, request)
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")

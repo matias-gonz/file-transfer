@@ -22,10 +22,12 @@ def test_upload_directory():
     port += 1
     src_file, _ = utils.create_test_files(1)
     with tempfile.TemporaryDirectory() as dir_name:
-        _ = process.Server(utils.TMP_DIR, port)
+        server = process.Server(utils.TMP_DIR, port, False)
         name = pathlib.Path(dir_name).name
         client = process.Upload(src_file.path, name, port)
-        assert client.wait() == 3  # server file open error
+        status = client.wait()
+        server.kill()
+        assert status == 3  # server file open error
 
 
 @pytest.mark.parametrize("s", [0, 1, 1000, 4092])

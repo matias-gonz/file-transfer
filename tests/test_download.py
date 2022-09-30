@@ -21,9 +21,11 @@ def test_download_nonexistent_file():
     port += 1
     _, dst_file = utils.create_test_files(1)
     with tempfile.TemporaryDirectory() as dir_name:
-        _ = process.Server(dir_name, port)
+        server = process.Server(dir_name, port, False)
         client = process.Download(dst_file.path, "nonexistent", port)
-        assert client.wait() == 3  # server file open error
+        status = client.wait()
+        server.kill()
+        assert status == 3  # server file open error
 
 
 @pytest.mark.parametrize("s", [0, 1, 1000, 4092])
