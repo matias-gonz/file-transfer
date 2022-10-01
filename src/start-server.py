@@ -12,18 +12,18 @@ def check_timed_out_connections(connections, s):
         try:
             responses = conn.timeout_response()
 
-            log.info(f"Connection {addr[0]}:{addr[1]} timed out")
+            log.debug(f"Connection {addr[0]}:{addr[1]} timed out")
 
             for resp in responses:
                 s.sendto(resp, addr)
 
         except TimeoutError:
-            log.info(
+            log.debug(
                 f"Connection {addr[0]}:{addr[1]} was closed due to timeout"
             )
             del connections[addr]
         except StopIteration:
-            log.info(f"Connection {addr[0]}:{addr[1]} finished by timeout")
+            log.debug(f"Connection {addr[0]}:{addr[1]} finished by timeout")
             del connections[addr]
 
 
@@ -32,14 +32,15 @@ def recv_msg(connections, s, sdir, one_run):
     h = address[0]
     p = address[1]
 
-    log.info(f"Received a message from {h}:{p} with size {len(msg)}")
-
     if address not in connections:
+        log.info(f"Received a request from {h}:{p}")
         try:
             connections[address] = protocol.Connection(msg, sdir)
         except ValueError as e:
             log.error(f"Invalid request: {e}")
             return False
+    else:
+        log.debug(f"Received a message from {h}:{p} with size {len(msg)}")
 
     try:
         for resp in connections[address].respond_to(msg):

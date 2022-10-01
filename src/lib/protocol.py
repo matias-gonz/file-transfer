@@ -137,20 +137,20 @@ class Connection:
         self.resp_code = constant.ALL_OK
         seq_num, opcode, file_name = parse_request_msg(msg)
 
-        log.debug(f"The first sequence number is: {seq_num}")
-        log.debug(f"Received an operation number of: {opcode}")
-        log.debug(f'Received file name: "{file_name}"')
+        log.info(f"The first sequence number is: {seq_num}")
+        log.info(f"Received an operation number of: {opcode}")
+        log.info(f'Received file name: "{file_name}"')
 
         file_path = storage_dir + file_name
 
         try:
             if opcode == constant.DOWNLOAD:
-                log.debug(f"Reading from file: '{file_path}'")
+                log.info(f"Reading from file: '{file_path}'")
                 self.file = open(file_path, "rb")
-                log.debug(f"The file has {path.getsize(file_path)} Bytes")
+                log.info(f"The file has {path.getsize(file_path)} Bytes")
                 self.responder = Sender(self.file)
             elif opcode == constant.UPLOAD:
-                log.debug(f"Writing to file: '{file_path}'")
+                log.info(f"Writing to file: '{file_path}'")
                 self.file = open(file_path, "wb")
                 self.responder = Receiver(self.file)
         except OSError:
