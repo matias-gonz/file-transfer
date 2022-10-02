@@ -18,3 +18,4 @@ CONN_START_SEQNUM = 0
 # server response codes
 ALL_OK = 0
 ERROR_OPENING_FILE = 1
+INVALID_REQUEST = 2

@@ -8,6 +8,7 @@ class Process:
     def __init__(self, cmd):
         self.p = subprocess.Popen(
             cmd,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             bufsize=0,
             close_fds=True,
@@ -20,7 +21,7 @@ class Process:
         return self.p.wait()
 
     def kill(self):
-        self.p.kill()
+        os.killpg(os.getpgid(self.p.pid), signal.SIGTERM)
 
     def __del__(self):
         try:
