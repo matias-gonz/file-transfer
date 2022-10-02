@@ -12,18 +12,18 @@ def check_timed_out_connections(connections, s):
         try:
             responses = conn.timeout_response()
 
-            log.info(f"Connection {addr[0]}:{addr[1]} timed out")
+            log.debug(f"Connection {addr[0]}:{addr[1]} timed out")
 
             for resp in responses:
                 s.sendto(resp, addr)
 
         except TimeoutError:
-            log.info(
+            log.debug(
                 f"Connection {addr[0]}:{addr[1]} was closed due to timeout"
             )
             del connections[addr]
         except StopIteration:
-            log.info(f"Connection {addr[0]}:{addr[1]} finished by timeout")
+            log.debug(f"Connection {addr[0]}:{addr[1]} finished by timeout")
             del connections[addr]
 
 
@@ -32,14 +32,15 @@ def recv_msg(connections, s, sdir, one_run):
     h = address[0]
     p = address[1]
 
-    log.info(f"Received a message from {h}:{p} with size {len(msg)}")
-
     if address not in connections:
+        log.info(f"Received a request from {h}:{p}")
         try:
             connections[address] = protocol.Connection(msg, sdir)
         except ValueError as e:
             log.error(f"Invalid request: {e}")
             return False
+    else:
+        log.debug(f"Received a message from {h}:{p} with size {len(msg)}")
 
     try:
         for resp in connections[address].respond_to(msg):
@@ -54,6 +55,30 @@ def recv_msg(connections, s, sdir, one_run):
         del connections[address]
         log.debug(f"Connection with {h}:{p} finished")
         return one_run
+
+
+def server(address, sdir, quiet, one_run):
+    connections = {}
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.settimeout(constant.SOCKET_TIMEOUT)
+        s.bind(address)
+        if not quiet:
+            print(f"Socket bound to port {address[1]}")
+
+        while True:
+            check_timed_out_connections(connections, s)
+
+            try:
+                ended = recv_msg(connections, s, sdir, one_run)
+                if ended:
+                    break
+            except TimeoutError:
+                continue
+            except KeyboardInterrupt:
+                break
+
+    return 130 if len(connections) > 0 else 0
 
 
 def set_logging_level(quiet, verbose):
@@ -81,29 +106,11 @@ def main():
     sdir = path.expanduser(args.storage) + "/"
     one_run = args.one
 
+    protocol.WINDOW_SIZE = args.window
+
     set_logging_level(quiet, verbose)
 
-    connections = {}
-
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.settimeout(constant.SOCKET_TIMEOUT)
-        s.bind((host, port))
-        if not quiet:
-            print(f"Socket bound to port {port}")
-
-        while True:
-            check_timed_out_connections(connections, s)
-
-            try:
-                ended = recv_msg(connections, s, sdir, one_run)
-                if ended:
-                    break
-            except TimeoutError:
-                continue
-            except KeyboardInterrupt:
-                break
-
-    return 130 if len(connections) > 0 else 0
+    return server((host, port), sdir, quiet, one_run)
 
 
 if __name__ == "__main__":
