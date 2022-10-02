@@ -6,10 +6,14 @@ PYTEST=$(POETRY) run pytest
 PACKAGE=src
 TESTS=tests
 LOSS=./loss.sh
+SERVER=src/start-server.py
+UPLOAD=src/upload.py
+DOWNLOAD=src/download.py
 
 install:
 	$(POETRY) install
 	$(POETRY_EXPORT)
+	chmod u+x ${SERVER} ${UPLOAD} ${DOWNLOAD}
 
 fmt:
 	$(ISORT) ./${PACKAGE}

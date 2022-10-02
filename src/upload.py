@@ -1,3 +1,4 @@
+#!/bin/python3
 import logging as log
 import socket
 import sys
