@@ -8,6 +8,7 @@ class Process:
     def __init__(self, cmd):
         self.p = subprocess.Popen(
             cmd,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             bufsize=0,
             close_fds=True,
@@ -17,7 +18,10 @@ class Process:
         self.timeout_s = constant.TIMEOUT_S
 
     def wait(self):
-        self.p.wait()
+        return self.p.wait()
+
+    def kill(self):
+        os.killpg(os.getpgid(self.p.pid), signal.SIGTERM)
 
     def __del__(self):
         try:
@@ -28,9 +32,11 @@ class Process:
 
 class Server(Process):
 
-    def __init__(self, storage_dir, port):
+    def __init__(self, storage_dir, port, onerun=True):
         cmd = [constant.PYTHON, '-u', constant.SERVER,
-               '-o', '-v', '-s', storage_dir, '-p', str(port)]
+               '-v', '-s', storage_dir, '-p', str(port)]
+        if onerun:
+            cmd.append('-o')
         super().__init__(cmd)
 
         for line in iter(self.p.stdout.readline, ""):

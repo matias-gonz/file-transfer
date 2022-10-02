@@ -9,10 +9,12 @@ from lib import constant, parser, protocol
 def send_and_recv(s, addr, msg):
     attempts = 0
     while True:
+        log.debug(f"Sending first message to {addr[0]}:{addr[1]}")
         s.sendto(msg, addr)
         try:
             return s.recvfrom(constant.MAX_PKT_SIZE)[0]
         except TimeoutError:
+            log.debug("Socket recv timeouted")
             attempts += 1
             if attempts >= constant.RETRY_NUMBER:
                 log.error("Couldn't connect with server")
@@ -24,7 +26,6 @@ def send_request(s, addr, msg):
         msg_recvd = send_and_recv(s, addr, msg)
         ack = protocol.msg_number(msg_recvd)
         log.debug(f"ACK={ack}, EXPECTED={constant.CONN_START_SEQNUM}")
-
         if ack == constant.CONN_START_SEQNUM:
             response_code = protocol.msg_response_code(msg_recvd)
 
@@ -41,9 +42,6 @@ def upload(server_address, src, name):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(constant.CONNECTION_TIMEOUT)
 
-    log.debug(
-        f"Sending first message to {server_address[0]}:{server_address[1]}"
-    )
     request = protocol.compose_request_msg(constant.UPLOAD, name)
     msg = send_request(s, server_address, request)
     log.debug(f"First message sent to {server_address[0]}:{server_address[1]}")
@@ -88,6 +86,7 @@ def main():
     verbose = args.verbose
     src = path.expanduser(args.src)
     name = args.name
+    protocol.WINDOW_SIZE = args.window
 
     set_logging_level(quiet, verbose)
 
