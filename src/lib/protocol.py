@@ -135,15 +135,16 @@ class Connection:
 
     def __init__(self, msg, storage_dir):
         self.resp_code = constant.ALL_OK
-        seq_num, opcode, file_name = parse_request_msg(msg)
-
-        log.info(f"The first sequence number is: {seq_num}")
-        log.info(f"Received an operation number of: {opcode}")
-        log.info(f'Received file name: "{file_name}"')
-
-        file_path = storage_dir + file_name
-
+        self.resp_code_sended = False
         try:
+            seq_num, opcode, file_name = parse_request_msg(msg)
+
+            log.debug(f"The first sequence number is: {seq_num}")
+            log.debug(f"Received an operation number of: {opcode}")
+            log.debug(f'Received file name: "{file_name}"')
+
+            file_path = storage_dir + file_name
+
             if opcode == constant.DOWNLOAD:
                 log.info(f"Reading from file: '{file_path}'")
                 self.file = open(file_path, "rb")
@@ -155,19 +156,31 @@ class Connection:
                 self.responder = Receiver(self.file)
         except OSError:
             self.resp_code = constant.ERROR_OPENING_FILE
+        except ValueError:
+            self.resp_code = constant.INVALID_REQUEST
 
         self.t_last_msg = time.monotonic()
 
     def respond_to(self, msg):
         self.t_last_msg = time.monotonic()
         if msg_number(msg) == constant.CONN_START_SEQNUM:
-            log.debug(f"Sending response code {self.resp_code}")
-            return (request_response_msg(self.resp_code),)
-        elif self.resp_code != constant.ALL_OK:
-            raise StopIteration(
-                f"finished connection with error {self.resp_code}"
-            )
+            return self.resp_code_msg()
+
+        if self.resp_code != constant.ALL_OK:
+            return self.bad_resp_code_msg()
+
         return self.responder.respond_to(msg)
+
+    def resp_code_msg(self):
+        log.debug(f"Sending response code {self.resp_code}")
+        return (request_response_msg(self.resp_code),)
+
+    def bad_resp_code_msg(self):
+        if not self.resp_code_sended:
+            self.resp_code_sended = True
+            return self.resp_code_msg()
+
+        raise StopIteration(f"finished connection with error {self.resp_code}")
 
     def timed_out(self):
         return time.monotonic() - self.t_last_msg > (
@@ -226,13 +239,17 @@ class Sender:
             self.dup_ack = (self.dup_ack + 1) % WINDOW_SIZE
             if self.dup_ack == constant.DUP_ACKS_BEFORE_RETRY:
                 return self.timeout_response()
-
-        if self.finished():
+        elif self.last_ack_detected(msg, ack_n) or self.finished():
             log.info("Finished sending file")
             raise StopIteration("finished sending packets")
 
         log.debug(f"Current base={self.base}, last_sent={self.last_sent}")
         return self._fill_window()
+
+    def last_ack_detected(self, msg, ack_n):
+        return (ack_n == 0
+                and len(msg) == 5
+                and msg_response_code(msg) == constant.INVALID_REQUEST)
 
     def timeout_response(self):
         """
