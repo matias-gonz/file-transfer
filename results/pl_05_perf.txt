@@ -1,0 +1,15 @@
+Time taken for transferring a file of 1 Bytes
+_________|  Stop-and-Wait  |   Go-Back-N   |   difference
+Upload   |      0.12757942 |    0.73038568 |  -0.60280626
+Download |       1.9301841 |    0.13139831 |   1.79878579
+
+Time taken for transferring a file of 2048 Bytes
+_________|  Stop-and-Wait  |   Go-Back-N   |   difference
+Upload   |      0.74526678 |    0.14433035 |  0.60093642
+Download |      0.14786603 |    0.45953426 | -0.31166823
+
+Time taken for transferring a file of 2097152 Bytes
+_________|  Stop-and-Wait  |   Go-Back-N   |   difference
+Upload   |       60.348694 |     25.050393 |  35.298301
+Download |       59.281236 |     25.838383 |  33.442853
+
