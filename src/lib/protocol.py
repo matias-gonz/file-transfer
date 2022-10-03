@@ -247,9 +247,11 @@ class Sender:
         return self._fill_window()
 
     def last_ack_detected(self, msg, ack_n):
-        return (ack_n == 0
-                and len(msg) == 5
-                and msg_response_code(msg) == constant.INVALID_REQUEST)
+        return (
+            ack_n == 0
+            and len(msg) == 5
+            and msg_response_code(msg) == constant.INVALID_REQUEST
+        )
 
     def timeout_response(self):
         """

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import logging as log
 import socket
 import sys
