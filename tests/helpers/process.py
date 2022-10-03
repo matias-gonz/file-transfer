@@ -32,11 +32,14 @@ class Process:
 
 class Server(Process):
 
-    def __init__(self, storage_dir, port, onerun=True):
+    def __init__(self, storage_dir, port, onerun=True, ws=10, quiet=False):
         cmd = [constant.PYTHON, '-u', constant.SERVER,
-               '-v', '-s', storage_dir, '-p', str(port)]
+               '-s', storage_dir, '-p', str(port), '-w', str(ws)]
         if onerun:
             cmd.append('-o')
+        if not quiet:
+            cmd.append('-v')
+
         super().__init__(cmd)
 
         for line in iter(self.p.stdout.readline, ""):
@@ -46,15 +49,19 @@ class Server(Process):
 
 class Upload(Process):
 
-    def __init__(self, src_path, dst_name, port):
+    def __init__(self, src_path, dst_name, port, ws=10, quiet=False):
         cmd = [constant.PYTHON, '-u', constant.UPLOAD,
-               '-v', '-s', src_path, '-n', dst_name, '-p', str(port)]
+               '-s', src_path, '-n', dst_name, '-p', str(port), '-w', str(ws)]
+        if not quiet:
+            cmd.append('-v')
         super().__init__(cmd)
 
 
 class Download(Process):
 
-    def __init__(self, dst_path, src_name, port):
+    def __init__(self, dst_path, src_name, port, quiet=False):
         cmd = [constant.PYTHON, '-u', constant.DOWNLOAD,
-               '-v', '-d', dst_path, '-n', src_name, '-p', str(port)]
+               '-d', dst_path, '-n', src_name, '-p', str(port)]
+        if not quiet:
+            cmd.append('-v')
         super().__init__(cmd)
