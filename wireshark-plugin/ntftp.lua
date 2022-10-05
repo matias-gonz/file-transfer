@@ -2,12 +2,12 @@ NTFTP_PORT = 6543
 
 ntftp_protocol = Proto("NTFTP",  "NTFTP Protocol")
 
-packet_type = ProtoField.string("ntftp.type", "Packet Type", base.UNICODE)
+packet_type = ProtoField.string("ntftp.type", "Packet Type")
 packet_number = ProtoField.uint32("ntftp.packet_number", "Packet Number", base.DEC)
 response_code = ProtoField.uint8("ntftp.response_code", "Response Code", base.DEC)
 request_code = ProtoField.uint8("ntftp.request_code", "Request Code", base.DEC)
 file_name = ProtoField.string("ntftp.file_name", "File Name", base.UNICODE)
-file_data = ProtoField.string("ntftp.file_data", "File Data", base.UNICODE)
+file_data = ProtoField.string("ntftp.file_data", "File Data")
 
 ntftp_protocol.fields = {
   packet_type,
@@ -56,11 +56,10 @@ function ntftp_protocol.dissector(buffer, pinfo, tree)
       local req_code = buffer(4, 1):uint()
       local s = " ("
       if req_code == 1 then
-        connections[src_port().value] = dst_port().value
+        connections[pinfo.src_port] = pinfo.dst_port
         s = s .. "DOWNLOAD"
       else
-        local src_port = src_port().value
-        connections[src_port] = src_port
+        connections[pinfo.src_port] = pinfo.src_port
         s = s .. "UPLOAD"
       end
 
@@ -70,18 +69,16 @@ function ntftp_protocol.dissector(buffer, pinfo, tree)
     end
   else
     if length == 4 then
-      local src_port = src_port().value
-      local dst_port = dst_port().value
-      local client_port = dst_port
-      if client_port == NTFTP_PORT then client_port = src_port end
-      if connections[client_port] == src_port then
+      local client_port = pinfo.dst_port
+      if client_port == NTFTP_PORT then client_port = pinfo.src_port end
+      if connections[client_port] == pinfo.src_port then
         type:append_text("FIN")
       else
         type:append_text("ACK")
       end
     else
       type:append_text("Data")
-      subtree:add(file_data, "(" .. tostring(length - 4) .. " bytes)")
+      subtree:add(file_data, buffer(4, length - 4), tostring(length - 4) .. " bytes")
     end
   end
 end
